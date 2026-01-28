@@ -2,42 +2,108 @@ import { ParsedCSV, MergedRow } from '../types/csv';
 
 /**
  * Merge multiple CSV files based on primary key columns
- * Implements a full outer join strategy
+ * Implements LEFT JOIN - preserves all rows from first file only, adds data from others where keys match
  */
 export function mergeCSVs(
     files: ParsedCSV[],
     primaryKeys: string[],
     activeColumns: string[]
 ): MergedRow[] {
-    // Map: composite key -> merged row
-    const mergeMap = new Map<string, MergedRow>();
+    if (files.length === 0) return [];
+    if (files.length === 1) return files[0].data;
 
-    files.forEach((file) => {
+    // The first file is the "primary" - we keep all its rows
+    const primaryFile = files[0];
+    const otherFiles = files.slice(1);
+
+    // Group rows by composite key for other files (for lookup)
+    const otherFileGroups: Map<string, MergedRow[]>[] = otherFiles.map(() => new Map());
+
+    otherFiles.forEach((file, fileIndex) => {
         file.data.forEach((row) => {
-            // Create composite key: "value1|value2|value3"
             const compositeKey = primaryKeys
                 .map((key) => String(row[key] ?? ''))
                 .join('|');
 
-            // Get existing row or create new one
-            const existingRow = mergeMap.get(compositeKey) ?? {};
-
-            // Merge row data (only active columns)
-            const mergedRow: MergedRow = { ...existingRow };
-            activeColumns.forEach((col) => {
-                if (col in row) {
-                    // Preserve existing value if already set, otherwise use current value
-                    if (!(col in mergedRow) || mergedRow[col] === undefined || mergedRow[col] === '') {
-                        mergedRow[col] = row[col];
-                    }
-                }
-            });
-
-            mergeMap.set(compositeKey, mergedRow);
+            if (!otherFileGroups[fileIndex].has(compositeKey)) {
+                otherFileGroups[fileIndex].set(compositeKey, []);
+            }
+            otherFileGroups[fileIndex].get(compositeKey)!.push(row);
         });
     });
 
-    return Array.from(mergeMap.values());
+    // Process each row from primary file
+    const result: MergedRow[] = [];
+
+    primaryFile.data.forEach((primaryRow) => {
+        // Create composite key from primary row
+        const compositeKey = primaryKeys
+            .map((key) => String(primaryRow[key] ?? ''))
+            .join('|');
+
+        // Get matching rows from other files
+        const matchingRowsByFile: MergedRow[][] = otherFileGroups.map((group) =>
+            group.get(compositeKey) || []
+        );
+
+        // If no matches in other files, just use primary row
+        if (matchingRowsByFile.every(rows => rows.length === 0)) {
+            const mergedRow: MergedRow = {};
+            activeColumns.forEach((col) => {
+                if (col in primaryRow) {
+                    mergedRow[col] = primaryRow[col];
+                }
+            });
+            result.push(mergedRow);
+            return;
+        }
+
+        // Create Cartesian product of matching rows from other files
+        const combinations = cartesianProduct(matchingRowsByFile);
+
+        // For each combination, merge with primary row
+        combinations.forEach((rowCombination) => {
+            const mergedRow: MergedRow = {};
+
+            // Start with primary row data
+            activeColumns.forEach((col) => {
+                if (col in primaryRow) {
+                    mergedRow[col] = primaryRow[col];
+                }
+            });
+
+            // Overlay data from other files (only if not already set)
+            rowCombination.forEach((row) => {
+                activeColumns.forEach((col) => {
+                    if (col in row && row[col] !== undefined && row[col] !== '') {
+                        if (!(col in mergedRow) || mergedRow[col] === undefined || mergedRow[col] === '') {
+                            mergedRow[col] = row[col];
+                        }
+                    }
+                });
+            });
+
+            result.push(mergedRow);
+        });
+    });
+
+    return result;
+}
+
+/**
+ * Generate Cartesian product of multiple arrays
+ * If an array is empty, treats it as [{}] for the product
+ */
+function cartesianProduct(arrays: MergedRow[][]): MergedRow[][] {
+    // Replace empty arrays with [{}] so we still get combinations
+    const normalizedArrays = arrays.map(arr => arr.length > 0 ? arr : [{}]);
+
+    return normalizedArrays.reduce<MergedRow[][]>(
+        (acc, curr) => {
+            return acc.flatMap(a => curr.map(b => [...a, b]));
+        },
+        [[]]
+    );
 }
 
 /**
@@ -64,7 +130,7 @@ export function getMergeStats(
     return {
         totalInputRows,
         totalOutputRows: mergedData.length,
-        uniqueKeys: mergedData.length,
+        uniqueKeys: mergedData.length, // Note: Output may contain duplicate keys
         filesCount: files.length,
     };
 }

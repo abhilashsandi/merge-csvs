@@ -52,6 +52,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
             };
         }
 
+        case 'REORDER_FILES': {
+            return {
+                ...state,
+                uploadedFiles: action.payload,
+                mergedData: null, // Clear merge results when files are reordered
+            };
+        }
+
         case 'SET_UPLOAD_ERROR':
             return { ...state, uploadError: action.payload, isUploading: false };
 

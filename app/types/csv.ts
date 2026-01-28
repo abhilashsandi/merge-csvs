@@ -19,13 +19,13 @@ export interface AppState {
   uploadedFiles: ParsedCSV[];
   isUploading: boolean;
   uploadError: string | null;
-  
+
   // Column Management
   allColumns: string[];          // Unique columns across all files
   activeColumns: string[];       // Columns to include in merge
   removedColumns: string[];      // Columns excluded from merge
   primaryKeys: string[];         // Selected primary key columns
-  
+
   // Merge Results
   mergedData: MergedRow[] | null;
   isMerging: boolean;
@@ -36,6 +36,7 @@ export type AppAction =
   | { type: 'SET_UPLOADING'; payload: boolean }
   | { type: 'ADD_FILES'; payload: ParsedCSV[] }
   | { type: 'REMOVE_FILE'; payload: string }
+  | { type: 'REORDER_FILES'; payload: ParsedCSV[] }
   | { type: 'SET_UPLOAD_ERROR'; payload: string | null }
   | { type: 'SET_COLUMNS'; payload: string[] }
   | { type: 'REORDER_COLUMNS'; payload: string[] }
