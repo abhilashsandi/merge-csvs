@@ -84,8 +84,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
             return { ...state, activeColumns, removedColumns };
         }
 
-        case 'SET_PRIMARY_KEYS':
-            return { ...state, primaryKeys: action.payload };
+        case 'SET_PRIMARY_KEYS': {
+            const newPrimaryKeys = action.payload;
+            // Reorder active columns: primary keys first, then others
+            const otherColumns = state.activeColumns.filter(col => !newPrimaryKeys.includes(col));
+            const newActiveColumns = [...newPrimaryKeys, ...otherColumns];
+
+            return {
+                ...state,
+                primaryKeys: newPrimaryKeys,
+                activeColumns: newActiveColumns
+            };
+        }
 
         case 'SET_MERGING':
             return { ...state, isMerging: action.payload };

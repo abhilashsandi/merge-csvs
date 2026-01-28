@@ -12,9 +12,26 @@ import { useAppState } from './hooks/useAppState';
 import { motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
+import { RotateCcw } from 'lucide-react';
+import { Button } from './components/ui/button';
+
 export default function Home() {
   const { state, dispatch } = useAppState();
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Update tab title with counts
+  useEffect(() => {
+    const fileCount = state.uploadedFiles.length;
+    const baseTitle = 'CSV Merger';
+
+    if (state.mergedData) {
+      document.title = `(${state.mergedData.length} rows) Merged - ${baseTitle}`;
+    } else if (fileCount > 0) {
+      document.title = `(${fileCount} files) - ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+  }, [state.uploadedFiles.length, state.mergedData]);
 
   // Scroll to results when mergedData is populated
   useEffect(() => {
@@ -29,6 +46,23 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 selection:bg-zinc-900 selection:text-white dark:bg-zinc-950 dark:selection:bg-white dark:selection:text-zinc-900">
       <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            CSV Merger
+          </h1>
+          {state.uploadedFiles.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => dispatch({ type: 'RESET' })}
+              className="gap-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Start Over
+            </Button>
+          )}
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

@@ -28,14 +28,16 @@ export function PreviewTable({ data, activeColumns, primaryKeys }: PreviewTableP
                     <Table className="h-4 w-4" />
                 </div>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    Preview (First 10 Rows)
+                    Preview <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">
+                        (First 10 of {data.length.toLocaleString()} rows)
+                    </span>
                 </h3>
             </div>
 
             <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-zinc-50 dark:bg-zinc-950/50">
+                <div className="max-h-[600px] overflow-auto custom-scrollbar">
+                    <table className="w-full text-left text-sm relative">
+                        <thead className="sticky top-0 z-10 bg-zinc-50 shadow-sm dark:bg-zinc-950">
                             <tr>
                                 {activeColumns.map((col) => {
                                     const isPrimaryKey = primaryKeys.includes(col);
