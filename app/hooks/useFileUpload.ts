@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { parseCSVFile } from '../utils/csv-parser';
 import { AppAction } from '../types/csv';
@@ -10,8 +10,10 @@ interface UseFileUploadProps {
 }
 
 export function useFileUpload({ dispatch }: UseFileUploadProps) {
+    const [isLoading, setIsLoading] = useState(false);
     const onDrop = useCallback(
         async (acceptedFiles: File[]) => {
+            setIsLoading(true);
             dispatch({ type: 'SET_UPLOADING', payload: true });
 
             try {
@@ -24,6 +26,7 @@ export function useFileUpload({ dispatch }: UseFileUploadProps) {
                 const errorMessage = error instanceof Error ? error.message : 'Failed to upload files';
                 dispatch({ type: 'SET_UPLOAD_ERROR', payload: errorMessage });
             } finally {
+                setIsLoading(false);
                 dispatch({ type: 'SET_UPLOADING', payload: false });
             }
         },
@@ -45,5 +48,6 @@ export function useFileUpload({ dispatch }: UseFileUploadProps) {
         isDragActive,
         isDragAccept,
         isDragReject,
+        isLoading,
     };
 }
