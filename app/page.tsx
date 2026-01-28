@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react';
 
 import { RotateCcw } from 'lucide-react';
 import { Button } from './components/ui/button';
+import Link from 'next/link';
 
 export default function Home() {
   const { state, dispatch } = useAppState();
@@ -50,17 +51,19 @@ export default function Home() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             CSV Merger
           </h1>
-          {state.uploadedFiles.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => dispatch({ type: 'RESET' })}
-              className="gap-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Start Over
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {state.uploadedFiles.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => dispatch({ type: 'RESET' })}
+                className="gap-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Start Over
+              </Button>
+            )}
+          </div>
         </div>
 
         <motion.div
