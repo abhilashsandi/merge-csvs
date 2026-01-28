@@ -18,6 +18,10 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GripVertical, X, Key } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 
 interface ActiveColumnsListProps {
     columns: string[];
@@ -40,68 +44,70 @@ function SortableColumn({
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1, // Reduced opacity when dragging
+        zIndex: isDragging ? 50 : 1,
+        position: 'relative' as const,
     };
 
     return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            className={`
-        group flex items-center justify-between rounded-lg border p-3 
-        ${isPrimaryKey
-                    ? 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30'
-                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
-                }
-        transition-all hover:shadow-md
-      `}
-        >
-            <div className="flex items-center gap-2">
-                {/* Drag handle */}
-                <button
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
-                    aria-label="Drag to reorder"
-                >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 6h16M4 12h16M4 18h16"
-                        />
-                    </svg>
-                </button>
-
-                {/* Column name */}
-                <span
-                    className={`text-sm font-medium ${isPrimaryKey
-                        ? 'text-blue-900 dark:text-blue-100'
-                        : 'text-zinc-900 dark:text-zinc-100'
-                        }`}
-                    title={column}
-                >
-                    {column}
-                </span>
-
-                {isPrimaryKey && (
-                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
-                        Key
-                    </span>
-                )}
-            </div>
-
-            {/* Remove button */}
-            <button
-                onClick={onRemove}
-                className="rounded p-1 text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                aria-label={`Remove ${column}`}
+        <div ref={setNodeRef} style={style} className="touch-none">
+            <motion.div
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className={`
+                    group flex items-center justify-between rounded-md border px-3 py-2.5 shadow-sm transition-all
+                    ${isPrimaryKey
+                        ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50'
+                        : 'border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700'
+                    }
+                    ${isDragging ? 'shadow-lg ring-2 ring-zinc-900 ring-offset-2 dark:ring-zinc-100' : ''}
+                `}
             >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+                <div className="flex flex-1 items-center gap-3 overflow-hidden">
+                    {/* Drag handle */}
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
+                        aria-label="Drag to reorder"
+                    >
+                        <GripVertical className="h-4 w-4" />
+                    </button>
+
+                    {/* Column name */}
+                    <div className="flex flex-1 items-center gap-2 overflow-hidden">
+                        <span
+                            className={`truncate text-sm font-medium ${isPrimaryKey
+                                ? 'text-zinc-900 dark:text-zinc-100'
+                                : 'text-zinc-700 dark:text-zinc-300'
+                                }`}
+                            title={column}
+                        >
+                            {column}
+                        </span>
+
+                        {isPrimaryKey && (
+                            <span className="flex items-center gap-1 rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                <Key className="h-3 w-3" />
+                                Key
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Remove button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onRemove}
+                    className="h-7 w-7 text-zinc-400 opacity-0 transition-all hover:bg-zinc-100 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-zinc-800"
+                >
+                    <X className="h-3.5 w-3.5" />
+                    <span className="sr-only">Remove {column} column</span>
+                </Button>
+            </motion.div>
         </div>
     );
 }
@@ -127,11 +133,15 @@ export function ActiveColumnsList({ columns, primaryKeys, dispatch }: ActiveColu
 
     if (columns.length === 0) {
         return (
-            <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-6 text-center dark:border-zinc-800 dark:bg-zinc-900/50"
+            >
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    No columns available. Upload CSV files to get started.
+                    No active columns. Upload CSV files or add columns from the removed list.
                 </p>
-            </div>
+            </motion.div>
         );
     }
 
@@ -139,14 +149,16 @@ export function ActiveColumnsList({ columns, primaryKeys, dispatch }: ActiveColu
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={columns} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2">
-                    {columns.map((column) => (
-                        <SortableColumn
-                            key={column}
-                            column={column}
-                            isPrimaryKey={primaryKeys.includes(column)}
-                            onRemove={() => dispatch({ type: 'REMOVE_COLUMN', payload: column })}
-                        />
-                    ))}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        {columns.map((column) => (
+                            <SortableColumn
+                                key={column}
+                                column={column}
+                                isPrimaryKey={primaryKeys.includes(column)}
+                                onRemove={() => dispatch({ type: 'REMOVE_COLUMN', payload: column })}
+                            />
+                        ))}
+                    </AnimatePresence>
                 </div>
             </SortableContext>
         </DndContext>

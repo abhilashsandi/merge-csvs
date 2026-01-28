@@ -18,6 +18,10 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GripVertical, FileText, Trash2, Star } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
 
 interface FileListProps {
     files: ParsedCSV[];
@@ -43,83 +47,104 @@ function SortableFile({
     };
 
     return (
-        <div
+        <motion.div
             ref={setNodeRef}
             style={style}
-            className="group flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+            layout
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
         >
-            <div className="flex items-center gap-3">
-                {/* Drag handle */}
-                <button
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
-                    aria-label="Drag to reorder files"
-                >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 6h16M4 12h16M4 18h16"
-                        />
-                    </svg>
-                </button>
+            {/* Gradient overlay for primary file */}
+            {index === 0 && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 dark:from-blue-500/10 dark:to-purple-500/10"
+                />
+            )}
 
-                {/* File icon */}
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow">
-                    <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {/* Drag handle */}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    {...attributes}
+                                    {...listeners}
+                                    className="cursor-grab text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
+                                    aria-label="Drag to reorder files"
+                                >
+                                    <GripVertical className="h-5 w-5" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Drag to reorder</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    {/* File icon */}
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow"
                     >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                    </svg>
+                        <FileText className="h-5 w-5" />
+                    </motion.div>
+
+                    {/* File info */}
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                            {file.filename}
+                                        </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{file.filename}</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            {index === 0 && (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                >
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                        <Star className="h-3 w-3" />
+                                        Primary
+                                    </span>
+                                </motion.div>
+                            )}
+                        </div>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                            {file.rowCount.toLocaleString()} rows • {file.headers.length} columns
+                        </p>
+                    </div>
                 </div>
 
-                {/* File info */}
-                <div>
-                    <p className="font-medium text-zinc-900 dark:text-zinc-100" title={file.filename}>
-                        {file.filename}
-                        {index === 0 && (
-                            <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                Primary
-                            </span>
-                        )}
-                    </p>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {file.rowCount} rows • {file.headers.length} columns
-                    </p>
-                </div>
+                {/* Remove button */}
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onRemove}
+                                className="opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                                aria-label={`Remove ${file.filename}`}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove file</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
-
-            {/* Remove button */}
-            <button
-                onClick={onRemove}
-                className="rounded-lg p-2 text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                aria-label={`Remove ${file.filename}`}
-            >
-                <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                </svg>
-            </button>
-        </div>
+        </motion.div>
     );
 }
 
@@ -145,30 +170,42 @@ export function FileList({ files, dispatch }: FileListProps) {
     if (files.length === 0) return null;
 
     return (
-        <div className="space-y-3">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="space-y-3"
+        >
             <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     Uploaded Files ({files.length})
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                >
                     Drag to reorder • First file is primary
-                </p>
+                </motion.p>
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={files.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-2">
-                        {files.map((file, index) => (
-                            <SortableFile
-                                key={file.id}
-                                file={file}
-                                index={index}
-                                onRemove={() => dispatch({ type: 'REMOVE_FILE', payload: file.id })}
-                            />
-                        ))}
-                    </div>
+                <SortableContext items={files.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+                    <AnimatePresence mode="popLayout">
+                        <div className="space-y-2">
+                            {files.map((file, index) => (
+                                <SortableFile
+                                    key={file.id}
+                                    file={file}
+                                    index={index}
+                                    onRemove={() => dispatch({ type: 'REMOVE_FILE', payload: file.id })}
+                                />
+                            ))}
+                        </div>
+                    </AnimatePresence>
                 </SortableContext>
             </DndContext>
-        </div>
+        </motion.div>
     );
 }
