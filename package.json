@@ -21,6 +21,7 @@
     "next": "16.1.5",
     "papaparse": "^5.5.3",
     "pdf-lib": "^1.17.1",
+    "prism-react-renderer": "^2.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-dropzone": "^14.3.8",

@@ -48,9 +48,23 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-50 selection:bg-zinc-900 selection:text-white dark:bg-zinc-950 dark:selection:bg-white dark:selection:text-zinc-900">
       <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            CSV Merger
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              CSV Merger
+            </h1>
+            <Link 
+              href="/nodejs" 
+              className="rounded-md bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-50 transition-colors"
+            >
+              Node.js Interview
+            </Link>
+            <Link 
+              href="/reactjs" 
+              className="rounded-md bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-50 transition-colors"
+            >
+              React.js Interview
+            </Link>
+          </div>
           <div className="flex items-center gap-2">
             {state.uploadedFiles.length > 0 && (
               <Button
