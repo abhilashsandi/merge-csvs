@@ -87,11 +87,11 @@ export default function DpsScheduler() {
             },
             appSettings: {
                 cancelIfExist: false,
-                interval: 10000,
+                interval: 5000,
                 webserver: false,
                 headersTimeout: 20000,
                 maxRetry: 3,
-                captcha: { strategy: 'manual' }
+                captcha: { strategy: 'browser' }
             }
         };
 
@@ -181,9 +181,7 @@ export default function DpsScheduler() {
         eventSource.onerror = () => {
             setLogs(prev => [...prev, 'Connection to log stream closed.']);
             eventSource.close();
-            if (isRunning) {
-                 setIsRunning(false);
-            }
+            setIsRunning(false);
         };
     };
 
