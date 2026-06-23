@@ -88,4 +88,5 @@ const configZod = z.object({
 
 type Config = z.infer<typeof configZod>;
 
-export { Config, configZod };
+export type { Config };
+export { configZod };
