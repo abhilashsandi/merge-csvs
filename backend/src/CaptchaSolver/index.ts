@@ -8,11 +8,11 @@ import parseConfig from '../Config';
 const config = parseConfig();
 
 const CreateCaptchaSolverTask = () => {
-    switch (config.appSettings.captcha.solverOptions.solverService) {
+    switch (config.appSettings.captcha?.solverOptions?.solverService) {
         case 'capsolver':
-            return Capsolver.CapSolverCreateTask(config.appSettings.captcha.solverOptions.solverApiToken);
+            return Capsolver.CapSolverCreateTask(config.appSettings.captcha!.solverOptions!.solverApiToken!);
         // case '2captcha':
-        //     return TwoCaptcha.TwoCaptchaCreateTask(config.appSettings.captcha.solverOptions.solverApiToken);
+        //     return TwoCaptcha.TwoCaptchaCreateTask(config.appSettings.captcha!.solverOptions!.solverApiToken!);
         default:
             log.error('Unknown captcha solver service');
             throw new Error('Unknown captcha solver service');
@@ -20,11 +20,11 @@ const CreateCaptchaSolverTask = () => {
 };
 
 const GetCaptchaSolverResult = (taskId: string) => {
-    switch (config.appSettings.captcha.solverOptions.solverService) {
+    switch (config.appSettings.captcha?.solverOptions?.solverService) {
         case 'capsolver':
-            return Capsolver.CapSolverGetResult(taskId, config.appSettings.captcha.solverOptions.solverApiToken);
+            return Capsolver.CapSolverGetResult(taskId, config.appSettings.captcha!.solverOptions!.solverApiToken!);
         // case '2captcha':
-        //     return TwoCaptcha.TwoCaptchaGetResult(taskId, config.appSettings.captcha.solverOptions.solverApiToken);
+        //     return TwoCaptcha.TwoCaptchaGetResult(taskId, config.appSettings.captcha!.solverOptions!.solverApiToken!);
         default:
             log.error('Unknown captcha solver service');
             throw new Error('Unknown captcha solver service');

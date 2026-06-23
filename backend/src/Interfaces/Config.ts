@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const checkStartLowerThanEnd = data => data.start < data.end;
+const checkStartLowerThanEnd = (data: any) => data.start < data.end;
 
 const configZod = z.object({
     personalInfo: z.object({
@@ -56,11 +56,11 @@ const configZod = z.object({
             .nullable()
             .refine(
                 data => {
-                    if (data.strategy === 'browser' || data.strategy === 'manual') return true;
+                    if (data?.strategy === 'browser' || data?.strategy === 'manual') return true;
                     return (
-                        typeof data.solverOptions.solverService === 'string' &&
-                        typeof data.solverOptions.solverApiToken === 'string' &&
-                        data.solverOptions.solverApiToken.length > 0
+                        typeof data?.solverOptions?.solverService === 'string' &&
+                        typeof data?.solverOptions?.solverApiToken === 'string' &&
+                        data?.solverOptions?.solverApiToken.length > 0
                     );
                 },
                 {
