@@ -29,13 +29,13 @@ export default function DpsScheduler() {
     const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_RENDER || 'http://localhost:3001';
 
     useEffect(() => {
-        const saved = localStorage.getItem('dpsConfig');
-        if (saved) {
-            try {
+        try {
+            const saved = localStorage.getItem('dpsConfig');
+            if (saved) {
                 setFormData(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse saved config");
             }
+        } catch (e) {
+            console.error("Failed to read/parse config from localStorage", e);
         }
 
         return () => {
@@ -56,7 +56,11 @@ export default function DpsScheduler() {
     };
 
     const startScheduler = async () => {
-        localStorage.setItem('dpsConfig', JSON.stringify(formData));
+        try {
+            localStorage.setItem('dpsConfig', JSON.stringify(formData));
+        } catch (e) {
+            console.warn("Failed to save config to localStorage", e);
+        }
         setLogs(['Initializing scheduler...']);
         setIsRunning(true);
         setShowCaptchaPrompt(false);
@@ -91,7 +95,8 @@ export default function DpsScheduler() {
                 webserver: false,
                 headersTimeout: 20000,
                 maxRetry: 3,
-                captcha: { strategy: 'browser' }
+                captcha: { strategy: 'browser' },
+                maxExecutionTime: 30 * 60 * 1000
             }
         };
 
@@ -101,6 +106,10 @@ export default function DpsScheduler() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`HTTP ${res.status}: ${errText}`);
+            }
             const data = await res.json();
             
             if (data.jobId) {
@@ -179,9 +188,8 @@ export default function DpsScheduler() {
         };
 
         eventSource.onerror = () => {
-            setLogs(prev => [...prev, 'Connection to log stream closed.']);
-            eventSource.close();
-            setIsRunning(false);
+            console.warn('EventSource encountered an error. Relying on auto-reconnect...');
+            setLogs(prev => [...prev, 'Connection to log stream interrupted. Attempting to reconnect...']);
         };
     };
 
