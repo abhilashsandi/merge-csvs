@@ -1,0 +1,20 @@
+personalInfo:
+  firstName: "John"
+  lastName: "Doe"
+  dob: "01/01/2000"
+  email: "john@example.com"
+  lastFourSSN: "1234"
+location:
+  miles: 50
+  preferredDays:
+    - "monday"
+  sameDay: false
+  daysAround:
+    startDate: "01/01/2026"
+    start: 1
+    end: 10
+  timesAround:
+    start: 800
+    end: 1700
+appSettings:
+  cancelIfExist: false
