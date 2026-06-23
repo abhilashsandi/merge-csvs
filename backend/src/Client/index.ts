@@ -82,23 +82,31 @@ export class TexasScheduler extends EventEmitter {
     }
 
     public async run() {
-        if (existsSync('././cache/token.tmp')) {
-            log.info('Getting auth token from cache...');
-            this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
-        } else await this.getAuthToken();
-        if (this.responseId === null) await this.getResponseId();
-        this.existBooking = await this.checkExistBooking();
-        const { exist, response } = this.existBooking;
-        if (exist) {
-            log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
-            if (!this.config.appSettings.cancelIfExist) {
-                log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+        try {
+            if (existsSync('././cache/token.tmp')) {
+                log.info('Getting auth token from cache...');
+                this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
+            } else await this.getAuthToken();
+            if (this.responseId === null) await this.getResponseId();
+            this.existBooking = await this.checkExistBooking();
+            const { exist, response } = this.existBooking;
+            if (exist) {
+                log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
+                if (!this.config.appSettings.cancelIfExist) {
+                    log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+                } else {
+                    log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                }
+            }
+            await this.requestAvailableLocation();
+            await this.getLocationDatesAll();
+        } catch (err: any) {
+            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
+                log.info('Scheduler aborted successfully.');
             } else {
-                log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                throw err;
             }
         }
-        await this.requestAvailableLocation();
-        await this.getLocationDatesAll();
     }
 
     private async checkExistBooking() {
@@ -183,7 +191,7 @@ export class TexasScheduler extends EventEmitter {
 
         if (response === null) {
             log.warn(`No location found for ${typeStr}: ${identifier}`);
-            sleep.setTimeout(2000);
+            try { await sleep.setTimeout(2000, undefined, { signal: this.abortController.signal }); } catch { /* ignore */ }
             return [];
         }
 
@@ -264,11 +272,16 @@ export class TexasScheduler extends EventEmitter {
     private async getLocationDatesAll() {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
-        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
+        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000, undefined, { signal: this.abortController.signal }).then(() => this.getLocationDates(location)));
         while (!this.stopped) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
-            await sleep.setTimeout(this.config.appSettings.interval);
+            try {
+                await sleep.setTimeout(this.config.appSettings.interval, undefined, { signal: this.abortController.signal });
+            } catch (err: any) {
+                if (err.name === 'AbortError') break;
+                throw err;
+            }
         }
     }
 
@@ -359,6 +372,7 @@ export class TexasScheduler extends EventEmitter {
             timeout: this.config.appSettings.headersTimeout,
             data: method === 'POST' ? body : undefined, // Include body only for POST requests
             validateStatus: () => true,
+            signal: this.abortController.signal,
         });
 
         if (response.status !== 200) {
@@ -373,12 +387,12 @@ export class TexasScheduler extends EventEmitter {
                 if (repsonseIdStatus) {
                     log.info('Auth token valid!');
                     log.info('Sleeping for 5s...');
-                    await sleep.setTimeout(5000);
+                    await sleep.setTimeout(5000, undefined, { signal: this.abortController.signal });
                 }
             }
             if (response.status === 403) {
                 log.warn('Got rate limited, sleep for 10s...');
-                await sleep.setTimeout(10000);
+                await sleep.setTimeout(10000, undefined, { signal: this.abortController.signal });
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             if (retryTime < this.config.appSettings.maxRetry) {
@@ -409,7 +423,7 @@ export class TexasScheduler extends EventEmitter {
         }
         log.info('Slot hold successfully. Sleeping for 5s...');
         this.isHolded = true;
-        await sleep.setTimeout(5000);
+        await sleep.setTimeout(5000, undefined, { signal: this.abortController.signal });
         await this.bookSlot(booking, location);
     }
 
@@ -504,8 +518,17 @@ export class TexasScheduler extends EventEmitter {
             } catch (err) {
                 log.error('Browser auth failed. Waiting for manual token...');
                 this.emit('AUTH_REQUIRED');
-                await new Promise<void>((resolve) => {
-                    this.once('manual_token_received', resolve);
+                await new Promise<void>((resolve, reject) => {
+                    const onAbort = () => {
+                        this.removeListener('manual_token_received', resolve);
+                        reject(new Error('Aborted'));
+                    };
+                    if (this.abortController.signal.aborted) return onAbort();
+                    this.abortController.signal.addEventListener('abort', onAbort);
+                    this.once('manual_token_received', () => {
+                        this.abortController.signal.removeEventListener('abort', onAbort);
+                        resolve();
+                    });
                 });
             }
         } else if (this.config.appSettings.captcha.strategy === 'manual') {
@@ -534,12 +557,12 @@ export class TexasScheduler extends EventEmitter {
         if (!taskId) taskId = await CreateCaptchaSolverTask();
         const captchaResult = await this.getCaptchaResult(taskId);
         if (captchaResult === undefined) {
-            await sleep.setTimeout(2000);
+            await sleep.setTimeout(2000, undefined, { signal: this.abortController.signal });
             return this.getCaptchaToken(taskId, retries + 1);
         }
         if (captchaResult === null) {
             log.error('get captcha token failed! will create new task and sleep 10s!');
-            await sleep.setTimeout(10000);
+            await sleep.setTimeout(10000, undefined, { signal: this.abortController.signal });
             return this.getCaptchaToken(null, retries + 1);
         }
         log.info('Captcha token received successfully');
