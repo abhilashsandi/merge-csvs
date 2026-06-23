@@ -34,10 +34,7 @@ The `texas-dps-scheduler-main` will be wrapped in an Express.js server with the 
   - **Timeout Implementation**: Add a timeout (e.g., 30 mins, based on config) that automatically pauses the queue and terminates the job if no slot is found.
   - **Authentication Fallback**: If `getAuthToken()` using the browser strategy fails, it emits an `AUTH_REQUIRED` event to the frontend via SSE and pauses execution until a manual token is supplied via the `/api/schedule/token` endpoint.
 
-## 4. Deployment Steps for Render (To be provided to User)
-1. Push the `backend/` folder to GitHub.
-2. In Render, create a new "Web Service".
-3. Set the Root Directory to `backend`.
-4. Build Command: `npm install && npm run build`
-5. Start Command: `npm start`
-6. Provide the generated Render URL as an environment variable (`NEXT_PUBLIC_BACKEND_URL`) to the Vercel Next.js app.
+## 4. Deployment Strategy
+- The agent will fully automate the deployment process.
+- **Backend**: Deployed to Render using the `render` CLI (or using `render.yaml` infrastructure-as-code if applicable). The `NEXT_PUBLIC_BACKEND_URL` environment variable will be captured.
+- **Frontend**: The `NEXT_PUBLIC_BACKEND_URL` will be added to the Vercel project using the `vercel` CLI, and the Vercel deployment will be triggered automatically.

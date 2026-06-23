@@ -1,0 +1,1392 @@
+﻿diff --git a/backend/package.json b/backend/package.json
+new file mode 100644
+index 0000000..f5cf047
+--- /dev/null
++++ b/backend/package.json
+@@ -0,0 +1,31 @@
++{
++  "name": "dps-scheduler-backend",
++  "version": "1.0.0",
++  "main": "dist/server.js",
++  "scripts": {
++    "build": "tsc",
++    "start": "node dist/server.js",
++    "test": "node --test"
++  },
++  "dependencies": {
++    "axios": "^1.7.9",
++    "colorette": "^2.0.20",
++    "cors": "^2.8.5",
++    "dayjs": "^1.11.13",
++    "express": "^4.19.2",
++    "lodash": "^4.17.21",
++    "p-queue": "6.6.2",
++    "puppeteer": "^24.0.0",
++    "puppeteer-extra": "^3.3.6",
++    "puppeteer-extra-plugin-anonymize-ua": "^2.4.6",
++    "puppeteer-extra-plugin-stealth": "^2.11.2",
++    "uuid": "^10.0.0"
++  },
++  "devDependencies": {
++    "@types/cors": "^2.8.17",
++    "@types/express": "^4.17.21",
++    "@types/node": "^22.10.5",
++    "@types/uuid": "^10.0.0",
++    "typescript": "^5.7.3"
++  }
++}
+diff --git a/backend/render.yaml b/backend/render.yaml
+new file mode 100644
+index 0000000..57ce959
+--- /dev/null
++++ b/backend/render.yaml
+@@ -0,0 +1,8 @@
++services:
++  - type: web
++    name: dps-scheduler-api
++    env: node
++    rootDir: backend
++    buildCommand: npm install && npm run build
++    startCommand: npm start
++    plan: free
+diff --git a/backend/src/Assets/preferredDay.ts b/backend/src/Assets/preferredDay.ts
+new file mode 100644
+index 0000000..ebc658c
+--- /dev/null
++++ b/backend/src/Assets/preferredDay.ts
+@@ -0,0 +1,11 @@
++const preferredDays: Record<string, number> = {
++    sunday: 0,
++    monday: 1,
++    tuesday: 2,
++    wednesday: 3,
++    thursday: 4,
++    friday: 5,
++    saturday: 6,
++};
++
++export default preferredDays;
+diff --git a/backend/src/Browser/index.ts b/backend/src/Browser/index.ts
+new file mode 100644
+index 0000000..0522fd1
+--- /dev/null
++++ b/backend/src/Browser/index.ts
+@@ -0,0 +1,157 @@
++import _ from 'lodash';
++import puppeteer from 'puppeteer-extra';
++import { executablePath, Page } from 'puppeteer';
++// This plugin prevent bot detection
++import StealthPlugin from 'puppeteer-extra-plugin-stealth';
++// This plugin anonymize user agent
++import AnonymizeUA from 'puppeteer-extra-plugin-anonymize-ua';
++
++import * as log from '../Log';
++import parseConfig from '../Config';
++import nodeTimer from 'node:timers/promises';
++
++puppeteer.use(StealthPlugin());
++puppeteer.use(AnonymizeUA({ stripHeadless: true, makeWindows: true }));
++
++export const getAuthTokenFromBroswer = async (): Promise<string> => {
++    const config = parseConfig();
++    try {
++        // Launch brower instance
++        const browser = await puppeteer.launch({
++            headless: process.env.HEADLESS?.toLowerCase() == 'false' ? false : 'shell',
++            // headless: false,
++            slowMo: 10,
++            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disk-cache-size=0'],
++            executablePath: executablePath(),
++            timeout: 0,
++        });
++        const [page] = await browser.pages();
++
++        // Randomize viewport size
++        await page.setViewport({
++            width: 1920 + _.random(0, 200),
++            height: 1080 + _.random(0, 200),
++            deviceScaleFactor: 1,
++            hasTouch: false,
++            isLandscape: true,
++            isMobile: false,
++        });
++
++        await page.setJavaScriptEnabled(true);
++        await page.setDefaultNavigationTimeout(0);
++        log.dev('Navigating to DPS site...');
++        await page.goto('https://www.txdpsscheduler.com/');
++
++        // English button
++        log.dev('Clicking English button...');
++        await page.waitForSelector('.container > button');
++        await page.click('.container > button');
++
++        await page.waitForNetworkIdle();
++
++        // Personal infomation form
++        log.dev('Waiting for login form...');
++        await page.waitForSelector('.v-card__text');
++
++        await nodeTimer.setTimeout(_.random(1000, 2000)); // Random delay
++
++        log.info('Inputting personal info...');
++        // Input indices based on image: 1: Card Number, 2: First Name, 3: Last Name, 4: DOB, 5: SSN, 6: Contact Method, 7: Phone
++        await page.type('.v-input:nth-child(2) input', config.personalInfo.firstName, { delay: _.random(100, 300) });
++        await page.type('.v-input:nth-child(3) input', config.personalInfo.lastName, { delay: _.random(100, 300) });
++        await page.type('.v-input:nth-child(4) input', config.personalInfo.dob.replaceAll('/', ''), { delay: _.random(100, 300) });
++        await page.type('.v-input:nth-child(5) input', config.personalInfo.lastFourSSN, { delay: _.random(100, 300) });
++
++        if (config.personalInfo.phoneNumber) {
++            log.info('Inputting phone number...');
++            // Try to find the input with the phone mask placeholder
++            const phoneInputFound = await page.evaluate(() => {
++                const inputs = Array.from(document.querySelectorAll('input'));
++                const phoneInput = inputs.find(i => i.placeholder && i.placeholder.includes('###'));
++                if (phoneInput) {
++                    phoneInput.focus();
++                    return true;
++                }
++                return false;
++            });
++
++            if (phoneInputFound) {
++                await page.keyboard.type(config.personalInfo.phoneNumber, { delay: _.random(100, 300) });
++            } else {
++                log.warn('Could not find phone input by placeholder, trying fallback selector...');
++                await page.type('.v-input:nth-child(7) input', config.personalInfo.phoneNumber, { delay: _.random(100, 300) });
++            }
++        }
++
++        log.info('Input personal info done');
++
++        log.info('Scrolling login button into view...');
++        await page.evaluate(() => {
++            const loginBtn = document.querySelector('.v-card__actions.text-center > button');
++            if (loginBtn) {
++                loginBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
++            } else {
++                window.scrollTo(0, document.body.scrollHeight);
++            }
++        });
++        await nodeTimer.setTimeout(1000);
++
++        log.dev('Setting up network interception...');
++        const client = await page.createCDPSession();
++        await client.send('Network.enable');
++
++        const captchaTokenPromise = new Promise((resolve, reject) => {
++            const timeout = setTimeout(() => {
++                log.error('URL capture timed out. Capturing screenshot for debug...');
++                page.screenshot({ path: 'cache/debug_timeout.png' }).catch(() => null);
++                reject(new Error('Auth token retrieval timed out after 60 seconds'));
++            }, 60000);
++
++            client.on('Network.responseReceived', async event => {
++                log.dev(`Intercepted: ${event.response.url} (Status: ${event.response.status})`);
++                if (event.response.url.includes('/api/v1/account/auth') && event.response.status === 200) {
++                    log.info('Auth endpoint hit! Extracting token...');
++                    const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
++                    clearTimeout(timeout);
++                    resolve(response.body);
++                }
++            });
++
++            // Click the login button
++            log.info('Clicking Login button...');
++            page.waitForSelector('.v-card__actions.text-center > button').then(async () => {
++                await page.click('.v-card__actions.text-center > button');
++                page.waitForSelector('.v-dialog--active')
++                    .then(() => setTimeout(() => tryAgainDialog(page), 5000))
++                    .catch(() => null);
++            });
++        });
++
++        const tryAgainDialog = async (page: Page, retryTime = 0) => {
++            log.info('Google captcha score too low, trying again!');
++            if (retryTime > 10) throw new Error('Captcha token retrieval failed!');
++            await nodeTimer.setTimeout(_.random(1000, 3000, false));
++            const closeBtn = await page.$('.v-dialog--active > div > div > button');
++            if (closeBtn) await closeBtn.click();
++            await nodeTimer.setTimeout(_.random(1000, 3000, false));
++            const loginBtn = await page.$('.v-card__actions.text-center > button');
++            if (loginBtn) await loginBtn.click();
++            page.waitForSelector('.v-dialog--active')
++                .then(() => setTimeout(() => tryAgainDialog(page, retryTime + 1), 5000))
++                .catch(() => null);
++        };
++
++        // Wait for the auth token
++        const captchaToken = (await captchaTokenPromise) as string;
++        // Close the browser
++        await browser.close();
++
++        log.info('Get captcha token successfully!');
++        log.dev(`Captcha token: ${captchaToken}`);
++        return captchaToken;
++    } catch (err) {
++        log.error('Error while getting captcha token: ', err as Error);
++        log.info('Try to get captcha token again or manual set it in config.yml');
++        process.exit(1);
++    }
++};
+diff --git a/backend/src/CaptchaSolver/2Captcha.ts b/backend/src/CaptchaSolver/2Captcha.ts
+new file mode 100644
+index 0000000..1edef0c
+--- /dev/null
++++ b/backend/src/CaptchaSolver/2Captcha.ts
+@@ -0,0 +1,50 @@
++import axios from 'axios';
++import * as log from '../Log';
++import type { CreateTaskResponse, GetResultResponse } from '../Interfaces/Captcha';
++
++const captchaClient = axios.create({ baseURL: 'https://api.2captcha.com' });
++
++export const TwoCaptchaCreateTask = async (clientKey: string) => {
++    const getTaskID = await captchaClient.post(
++        '/createTask',
++        {
++            clientKey,
++            task: {
++                type: 'RecaptchaV3TaskProxyless',
++                websiteURL: 'https://www.txdpsscheduler.com',
++                websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
++                minScore: '0.9',
++                isEnterprise: true,
++                pageAction: 'login',
++            },
++        },
++        {
++            headers: { 'Content-Type': 'application/json' },
++            validateStatus: () => true,
++        },
++    );
++
++    const taskIdRepsonse = getTaskID.data as CreateTaskResponse;
++    if (getTaskID.status !== 200) {
++        log.error(`${taskIdRepsonse.errorId}: ${taskIdRepsonse.errorDescription ?? 'No error description'} `);
++        throw new Error(`Got ${getTaskID.status} status code`);
++    }
++    return taskIdRepsonse.taskId;
++};
++
++export const TwoCaptchaGetResult = async (taskId: string, clientKey: string) => {
++    const captchaResult = await captchaClient.post(
++        '/getTaskResult',
++        {
++            clientKey,
++            taskId,
++        },
++        {
++            headers: {
++                'Content-Type': 'application/json',
++            },
++        },
++    );
++    const captchaResultResponse = captchaResult.data as GetResultResponse;
++    return captchaResultResponse;
++};
+diff --git a/backend/src/CaptchaSolver/Capsolver.ts b/backend/src/CaptchaSolver/Capsolver.ts
+new file mode 100644
+index 0000000..9f4d546
+--- /dev/null
++++ b/backend/src/CaptchaSolver/Capsolver.ts
+@@ -0,0 +1,52 @@
++import axios from 'axios';
++import * as log from '../Log';
++import type { CreateTaskResponse, GetResultResponse } from '../Interfaces/Captcha';
++
++const captchaClient = axios.create({ baseURL: 'https://api.capsolver.com' });
++
++export const CapSolverCreateTask = async (clientKey: string) => {
++    const getTaskID = await captchaClient.post(
++        '/createTask',
++        {
++            clientKey,
++            task: {
++                type: 'ReCaptchaV3EnterpriseTaskProxyless',
++                websiteURL: 'https://www.txdpsscheduler.com',
++                websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
++                pageAction: 'login',
++            },
++            // Refferal code for developer! You won't cost any money.
++            appId: '38C7C3F9-63F7-4CAB-8C2A-771142941F88',
++        },
++        {
++            headers: {
++                'Content-Type': 'application/json',
++            },
++            validateStatus: () => true,
++        },
++    );
++
++    const taskIdRepsonse = getTaskID.data as CreateTaskResponse;
++    if (getTaskID.status !== 200) {
++        log.error(`${taskIdRepsonse.errorCode}: ${taskIdRepsonse.errorDescription}`);
++        throw new Error(`Got ${getTaskID.status} status code`);
++    }
++    return taskIdRepsonse.taskId;
++};
++
++export const CapSolverGetResult = async (taskId: string, clientKey: string) => {
++    const captchaResult = await captchaClient.post(
++        '/getTaskResult',
++        {
++            clientKey,
++            taskId,
++        },
++        {
++            headers: {
++                'Content-Type': 'application/json',
++            },
++        },
++    );
++    const captchaResultResponse = captchaResult.data as GetResultResponse;
++    return captchaResultResponse;
++};
+diff --git a/backend/src/CaptchaSolver/index.ts b/backend/src/CaptchaSolver/index.ts
+new file mode 100644
+index 0000000..ad56b0b
+--- /dev/null
++++ b/backend/src/CaptchaSolver/index.ts
+@@ -0,0 +1,34 @@
++import * as Capsolver from './Capsolver';
++
++// 2captcha isn't stable
++// import * as TwoCaptcha from './2Captcha';
++
++import * as log from '../Log';
++import parseConfig from '../Config';
++const config = parseConfig();
++
++const CreateCaptchaSolverTask = () => {
++    switch (config.appSettings.captcha.solverOptions.solverService) {
++        case 'capsolver':
++            return Capsolver.CapSolverCreateTask(config.appSettings.captcha.solverOptions.solverApiToken);
++        // case '2captcha':
++        //     return TwoCaptcha.TwoCaptchaCreateTask(config.appSettings.captcha.solverOptions.solverApiToken);
++        default:
++            log.error('Unknown captcha solver service');
++            throw new Error('Unknown captcha solver service');
++    }
++};
++
++const GetCaptchaSolverResult = (taskId: string) => {
++    switch (config.appSettings.captcha.solverOptions.solverService) {
++        case 'capsolver':
++            return Capsolver.CapSolverGetResult(taskId, config.appSettings.captcha.solverOptions.solverApiToken);
++        // case '2captcha':
++        //     return TwoCaptcha.TwoCaptchaGetResult(taskId, config.appSettings.captcha.solverOptions.solverApiToken);
++        default:
++            log.error('Unknown captcha solver service');
++            throw new Error('Unknown captcha solver service');
++    }
++};
++
++export { CreateCaptchaSolverTask, GetCaptchaSolverResult };
+diff --git a/backend/src/Client/index.ts b/backend/src/Client/index.ts
+new file mode 100644
+index 0000000..cb28a3a
+--- /dev/null
++++ b/backend/src/Client/index.ts
+@@ -0,0 +1,543 @@
++import https from 'https';
++import axios, { AxiosResponse } from 'axios';
++import sleep from 'timers/promises';
++import parseConfig from '../Config';
++import * as log from '../Log';
++import dayjs from 'dayjs';
++import isBetween from 'dayjs/plugin/isBetween';
++import { getAuthTokenFromBroswer } from '../Browser';
++import { CreateCaptchaSolverTask, GetCaptchaSolverResult } from '../CaptchaSolver';
++dayjs.extend(isBetween);
++import prompts from 'prompts';
++import type { EligibilityPayload } from '../Interfaces/Eligibility';
++import type { AvailableLocationPayload, AvailableLocationResponse } from '../Interfaces/AvailableLocation';
++import type { AvailableLocationDatesPayload, AvailableLocationDatesResponse, AvailableTimeSlots } from '../Interfaces/AvailableLocationDates';
++import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
++import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
++import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
++import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
++import type { AuthPayload } from '../Interfaces/Auth';
++import { pushNotifcation } from '../PushNotification';
++
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
++import PQueue from 'p-queue';
++
++let packagejson;
++try {
++    // eslint-disable-next-line @typescript-eslint/no-require-imports
++    packagejson = require('../../package.json');
++} catch {
++    try {
++        // eslint-disable-next-line @typescript-eslint/no-require-imports
++        packagejson = require('../package.json');
++    } catch {
++        packagejson.version = null;
++    }
++}
++
++interface CaptchaResult {
++    captchaToken: string;
++    userAgent: string;
++}
++
++class TexasScheduler {
++    private readonly requestClient = axios.create({
++        baseURL: 'https://apptapi.txdpsscheduler.com',
++        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
++    });
++    public config = parseConfig();
++    public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
++
++    private availableLocation: AvailableLocationResponse[] | null = null;
++    private isBooked = false;
++    private isHolded = false;
++    private readonly queue = new PQueue({ concurrency: 1 });
++    private authToken = '';
++    private readonly maxCaptchaSolverRetries = 25;
++    private responseId: number | null = null;
++    private userAgent: string | null = null;
++
++    public constructor() {
++        if (this.config.appSettings.webserver)
++            // eslint-disable-next-line  @typescript-eslint/no-require-imports
++            require('http')
++                .createServer((req: any, res: any) => res.end('Bot is alive!'))
++                .listen(process.env.PORT || 3000);
++        log.info(`Texas Scheduler v${packagejson.version} is starting...`);
++        log.info('Requesting Available Location....');
++        if (!existsSync('cache')) mkdirSync('cache');
++        this.run();
++    }
++
++    public async run() {
++        if (existsSync('././cache/token.tmp')) {
++            log.info('Getting auth token from cache...');
++            this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
++        } else await this.getAuthToken();
++        if (this.responseId === null) await this.getResponseId();
++        this.existBooking = await this.checkExistBooking();
++        const { exist, response } = this.existBooking;
++        if (exist) {
++            log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
++            if (!this.config.appSettings.cancelIfExist) {
++                log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
++            } else {
++                log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
++            }
++        }
++        await this.requestAvailableLocation();
++        await this.getLocationDatesAll();
++    }
++
++    private async checkExistBooking() {
++        const requestBody: ExistBookingPayload = {
++            FirstName: this.config.personalInfo.firstName,
++            LastName: this.config.personalInfo.lastName,
++            DateOfBirth: this.config.personalInfo.dob,
++            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
++        };
++
++        const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody)
++            .then(res => res.data)
++            .then((res: ExistBookingResponse[]) => res.filter((booking: ExistBookingResponse) => booking.ServiceTypeId == this.config.personalInfo.typeId));
++        // if no booking found, the api will return empty array
++        if (response.length > 0) return { exist: true, response };
++        return { exist: false, response };
++    }
++
++    private async cancelBooking(ConfirmationNumber: string) {
++        const requestBody: CancelBookingPayload = {
++            ConfirmationNumber,
++            DateOfBirth: this.config.personalInfo.dob,
++            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
++            FirstName: this.config.personalInfo.firstName,
++            LastName: this.config.personalInfo.lastName,
++        };
++        await this.requestApi('/api/CancelBooking', 'POST', requestBody);
++        log.info('Canceled booking successfully');
++    }
++
++    public async getResponseId() {
++        const requestBody: EligibilityPayload = {
++            FirstName: this.config.personalInfo.firstName,
++            LastName: this.config.personalInfo.lastName,
++            DateOfBirth: this.config.personalInfo.dob,
++            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
++            CardNumber: this.config.personalInfo.cardNumber,
++        };
++        const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.data);
++        this.responseId = response[0].ResponseId;
++        return true;
++    }
++
++    public async getAllLocation(): Promise<AvailableLocationResponse[]> {
++        const zipcodeList = this.config.location.zipCode;
++        const cityNameList = this.config.location.cityName;
++        const typeId = this.config.personalInfo.typeId || 71;
++
++        const finalArray: AvailableLocationResponse[] = [];
++        if (cityNameList.length > 0 && cityNameList[0] !== '') {
++            for (const cityName of cityNameList) {
++                const response = await this.getLocationForCity(cityName, typeId);
++                finalArray.push(...response);
++            }
++        } else {
++            for (const zipCode of zipcodeList) {
++                const response = await this.getLocationForZipCode(zipCode, typeId);
++                finalArray.push(...response);
++            }
++        }
++        return this.filterAndSortLocations(finalArray);
++    }
++
++    private async getLocationForCity(cityName: string, typeId: number): Promise<AvailableLocationResponse[]> {
++        const requestBody: AvailableLocationPayload = {
++            CityName: cityName,
++            PreferredDay: 0,
++            TypeId: typeId,
++            ZipCode: '',
++        };
++
++        const response = await this.fetchLocationData(requestBody);
++        if (response === null) {
++            log.warn(`No location found for city: ${cityName}`);
++            sleep.setTimeout(2000);
++            return [];
++        }
++
++        if (response.length !== 0) {
++            log.info(`Found ${response.length} locations for City: ${cityName}`);
++        }
++        response.forEach(el => (el.CityName = cityName));
++        return response;
++    }
++
++    private async getLocationForZipCode(zipCode: string, typeId: number): Promise<AvailableLocationResponse[]> {
++        const requestBody: AvailableLocationPayload = {
++            CityName: '',
++            PreferredDay: 0,
++            TypeId: typeId,
++            ZipCode: zipCode,
++        };
++
++        const response = await this.fetchLocationData(requestBody);
++        if (response === null) {
++            log.warn(`No location found for zipcode: ${zipCode}`);
++            sleep.setTimeout(2000);
++            return [];
++        }
++
++        if (response.length !== 0) {
++            log.info(`Found ${response.length} locations for zipcode: ${zipCode}`);
++        }
++        response.forEach(el => (el.ZipCode = zipCode));
++        return response;
++    }
++
++    private async fetchLocationData(requestBody: AvailableLocationPayload): Promise<AvailableLocationResponse[]> {
++        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(res => res.data as AvailableLocationResponse[]);
++    }
++
++    private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
++        return locations.sort((a, b) => a.Distance - b.Distance).filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
++    }
++
++    public async requestAvailableLocation(): Promise<void> {
++        const response = await this.getAllLocation();
++        if (response.length === 0) {
++            log.error('No Available location found! You can try add more zipcodes or set city name!');
++            process.exit(0);
++        }
++        if (this.config.location.pickDPSLocation) {
++            if (existsSync('././cache/location.json')) {
++                this.availableLocation = JSON.parse(readFileSync('././cache/location.json', 'utf-8'));
++                log.info('Found cached location selection, using cached location selection');
++                log.info('If you want to change location selection, please delete cache folder!');
++                return;
++            }
++            const userResponse = await prompts({
++                type: 'multiselect',
++                name: 'location',
++                message: 'Choose DPS location, you can choose multiple locations!',
++                choices: response.map(el => ({
++                    title: `${el.Name} - ${el.Address} - ${el.Distance} miles away from ${el.ZipCode ? el.ZipCode : el.CityName}!`,
++                    value: el,
++                })),
++                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
++            });
++            if (!userResponse.location || userResponse.location.length === 0) {
++                log.error('You must choose at least one location!');
++                process.exit(1);
++            }
++            this.availableLocation = userResponse.location;
++            writeFileSync('././cache/location.json', JSON.stringify(userResponse.location));
++            return;
++        }
++        const filteredResponse = response.filter((location: AvailableLocationResponse) => location.Distance < this.config.location.miles);
++        if (filteredResponse.length === 0) {
++            log.error(`No Available location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
++            process.exit(0);
++        }
++        log.info(`Found ${filteredResponse.length} Available location that match your criteria`);
++        log.info(`${filteredResponse.map(el => el.Name).join(', ')}`);
++        this.availableLocation = filteredResponse;
++        return;
++    }
++
++    private async getLocationDatesAll() {
++        log.info('Checking Available Location Dates....');
++        if (!this.availableLocation) return;
++        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
++        for (; ;) {
++            console.log('--------------------------------------------------------------------------------');
++            await this.queue.addAll(getLocationFunctions).catch(() => null);
++            await sleep.setTimeout(this.config.appSettings.interval);
++        }
++    }
++
++    private async getLocationDates(location: AvailableLocationResponse) {
++        const locationConfig = this.config.location;
++        const requestBody: AvailableLocationDatesPayload = {
++            LocationId: location.Id,
++            PreferredDay: 0,
++            SameDay: locationConfig.sameDay,
++            StartDate: null,
++            TypeId: this.config.personalInfo.typeId || 71,
++        };
++        const response = (await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.data)) as AvailableLocationDatesResponse;
++        let AvailableDates = response.LocationAvailabilityDates;
++
++        if (!locationConfig.sameDay) {
++            AvailableDates = response.LocationAvailabilityDates.filter(date => {
++                const AvailabilityDate = dayjs(date.AvailabilityDate);
++                const startDate = dayjs(this.config.location.daysAround.startDate);
++                let preferredDaysCondition = true;
++                if (locationConfig.preferredDays.length > 0) preferredDaysCondition = locationConfig.preferredDays.includes(AvailabilityDate.day());
++                return (
++                    AvailabilityDate.isBetween(startDate.add(locationConfig.daysAround.start, 'day'), startDate.add(locationConfig.daysAround.end, 'day'), 'day') &&
++                    date.AvailableTimeSlots.length > 0 &&
++                    preferredDaysCondition
++                );
++            });
++        }
++
++        if (AvailableDates.length !== 0) {
++            const filteredAvailabilityDates = AvailableDates.map(date => {
++                const filteredTimeSlots = date.AvailableTimeSlots.filter(timeSlot => {
++                    const startDateTime = dayjs(timeSlot.StartDateTime);
++                    const startHour = startDateTime.hour();
++                    return startHour >= this.config.location.timesAround.start && startHour < this.config.location.timesAround.end;
++                });
++                return {
++                    ...date,
++                    AvailableTimeSlots: filteredTimeSlots,
++                };
++            }).filter(date => date.AvailableTimeSlots.length > 0);
++
++            const booking = filteredAvailabilityDates[0].AvailableTimeSlots[0];
++
++            log.info(`${location.Name} is Available on ${booking.FormattedStartDateTime}`);
++            if (!this.queue.isPaused) this.queue.pause();
++            if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
++                log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
++                process.exit(0);
++            }
++            this.holdSlot(booking, location);
++            return Promise.resolve(true);
++        }
++        log.info(
++            `${location.Name} is not Available in ${locationConfig.sameDay
++                ? 'the same day'
++                : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from ${this.config.location.daysAround.startDate}!`
++            } `,
++        );
++
++        return Promise.reject();
++    }
++
++    private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<AxiosResponse> {
++        const headers = {
++            'Accept': 'application/json, text/plain, */*',
++            'Accept-Language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,te;q=0.6,hi;q=0.5',
++            'Connection': 'keep-alive',
++            'Content-Type': 'application/json;charset=UTF-8',
++            'IsMFAEnabled': 'N',
++            'Origin': 'https://www.txdpsscheduler.com',
++            'Referer': 'https://www.txdpsscheduler.com/',
++            'Sec-Fetch-Dest': 'empty',
++            'Sec-Fetch-Mode': 'cors',
++            'Sec-Fetch-Site': 'same-site',
++            'User-Agent': this.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
++            'sec-ch-ua': '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
++            'sec-ch-ua-mobile': '?0',
++            'sec-ch-ua-platform': '"Windows"',
++        };
++        if (this.authToken) headers['Authorization'] = this.authToken;
++
++        const response = await this.requestClient.request({
++            method,
++            url: path,
++            headers,
++            timeout: this.config.appSettings.headersTimeout,
++            data: method === 'POST' ? body : undefined, // Include body only for POST requests
++            validateStatus: () => true,
++        });
++
++        if (response.status !== 200) {
++            log.warn(`Got ${response.status} status code`);
++            log.info(`Endpoint: ${path}`);
++            log.dev(`Auth token: ${headers['Authorization']}`);
++            if (response.status === 401) {
++                log.info('Auth token expired! Try to get new token...');
++                await this.getAuthToken();
++                const repsonseIdStatus = await this.getResponseId();
++
++                if (repsonseIdStatus) {
++                    log.info('Auth token valid!');
++                    log.info('Sleeping for 5s...');
++                    await sleep.setTimeout(5000);
++                }
++            }
++            if (response.status === 403) {
++                log.warn('Got rate limited, sleep for 10s...');
++                await sleep.setTimeout(10000);
++                return this.requestApi(path, method, body, retryTime + 1);
++            }
++            if (retryTime < this.config.appSettings.maxRetry) {
++                log.info(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
++                return this.requestApi(path, method, body, retryTime + 1);
++            }
++            log.error(`Got ${response.status} status code, retrying failed!`);
++            process.exit(1);
++        }
++        return response;
++    }
++
++    private async holdSlot(booking: AvailableTimeSlots, location: AvailableLocationResponse) {
++        if (this.isHolded) return;
++        const requestBody: HoldSlotPayload = {
++            DateOfBirth: this.config.personalInfo.dob,
++            FirstName: this.config.personalInfo.firstName,
++            LastName: this.config.personalInfo.lastName,
++            Last4Ssn: this.config.personalInfo.lastFourSSN,
++            SlotId: booking.SlotId,
++        };
++        const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.data)) as HoldSlotResponse;
++        if (response.SlotHeldSuccessfully !== true) {
++            log.error(`Failed to hold slot: ${response.ErrorMessage}`);
++            if (this.queue.isPaused) this.queue.start();
++            return;
++        }
++        log.info('Slot hold successfully. Sleeping for 5s...');
++        this.isHolded = true;
++        await sleep.setTimeout(5000);
++        await this.bookSlot(booking, location);
++    }
++
++    private async bookSlot(booking: AvailableTimeSlots, location: AvailableLocationResponse) {
++        if (this.isBooked) return;
++        log.info('Booking slot....');
++        if (this.existBooking?.exist) {
++            log.info(`Canceling existing booking ${this.existBooking.response[0].ConfirmationNumber}`);
++            await this.cancelBooking(this.existBooking.response[0].ConfirmationNumber);
++        }
++        const requestBody: BookSlotPayload = {
++            AdaRequired: false,
++            BookingDateTime: booking.StartDateTime,
++            BookingDuration: booking.Duration,
++            CardNumber: '',
++            CellPhone: this.config.personalInfo.phoneNumber ? this.config.personalInfo.phoneNumber : '',
++            DateOfBirth: this.config.personalInfo.dob,
++            Email: this.config.personalInfo.email,
++            FirstName: this.config.personalInfo.firstName,
++            LastName: this.config.personalInfo.lastName,
++            HomePhone: '',
++            Last4Ssn: this.config.personalInfo.lastFourSSN,
++            ResponseId: this.responseId,
++            SendSms: !!this.config.personalInfo.phoneNumber,
++            ServiceTypeId: this.config.personalInfo.typeId || 71,
++            SiteId: location.Id,
++            SpanishLanguage: 'N',
++        };
++
++        const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
++        if (response.status === 200) {
++            const bookingInfo = response.data as BookSlotResponse;
++            if (bookingInfo?.Booking === null) {
++                if (this.queue.isPaused) this.queue.start();
++                log.error('Failed to book slot');
++                log.error(JSON.stringify(bookingInfo));
++                this.isHolded = false;
++                return;
++            }
++            const appointmentURL = `https://www.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
++            this.isBooked = true;
++            log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
++            log.info(`Visiting this link to print your booking:`);
++            log.info(appointmentURL);
++            if (this.config.appSettings.pushNotifcation.enabled) {
++                log.info('Sending notification...');
++                await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
++                    log.error('Failed to send notification', error);
++                });
++            }
++            process.exit(0);
++        } else {
++            if (this.queue.isPaused) this.queue.start();
++            log.error('Failed to book slot');
++            log.error(response.data);
++        }
++    }
++
++    private async getAuthToken() {
++        if (this.config.appSettings.captcha.strategy === 'solver') {
++            const captchaToken = await this.getCaptchaToken();
++            const requestBody: AuthPayload = {
++                RecaptchaToken: {
++                    Action: 'login',
++                    Token: captchaToken,
++                },
++                UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
++                Email: this.config.personalInfo.email || '',
++                CellPhone: this.config.personalInfo.phoneNumber || '',
++                UserDetails: {
++                    FirstName: this.config.personalInfo.firstName,
++                    LastName: this.config.personalInfo.lastName,
++                    DateOfBirth: this.config.personalInfo.dob,
++                    CardNumber: this.config.personalInfo.cardNumber || '',
++                    LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
++                },
++                IsEmail: false,
++                IsMobile: true,
++                SelectedLanguage: 'EN',
++            };
++
++            log.dev(`Captcha token: ${captchaToken}`);
++            log.dev(`Request body: ${JSON.stringify(requestBody)}`);
++            const response = (await this.requestApi('/api/v1/account/auth', 'POST', requestBody).then(res => res.data)) as any;
++            this.authToken = response.data.token;
++        } else if (this.config.appSettings.captcha.strategy === 'browser') {
++            const response = await getAuthTokenFromBroswer();
++            try {
++                const parsed = JSON.parse(response);
++                this.authToken = parsed.data.token;
++            } catch {
++                this.authToken = response;
++            }
++        } else if (this.config.appSettings.captcha.strategy === 'manual') {
++            const response = await prompts({
++                type: 'text',
++                name: 'token',
++                message: 'Your captcha token is expired. Enter the new token: ',
++                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
++            });
++            this.authToken = response.token;
++        }
++
++        if (this.authToken) {
++            writeFileSync('././cache/token.tmp', this.authToken);
++        }
++    }
++
++    private async getCaptchaToken(taskId?: string | null, retries = 0): Promise<string> {
++        if (retries > this.maxCaptchaSolverRetries) {
++            log.error(`Get captcha token failed after ${this.maxCaptchaSolverRetries} retries! will retry!`);
++            return await this.getCaptchaToken(null, 0);
++        }
++        if (!taskId) taskId = await CreateCaptchaSolverTask();
++        const captchaResult = await this.getCaptchaResult(taskId);
++        if (captchaResult === undefined) {
++            await sleep.setTimeout(2000);
++            return this.getCaptchaToken(taskId, retries + 1);
++        }
++        if (captchaResult === null) {
++            log.error('get captcha token failed! will create new task and sleep 10s!');
++            await sleep.setTimeout(10000);
++            return this.getCaptchaToken(null, retries + 1);
++        }
++        log.info('Captcha token received successfully');
++        this.userAgent = captchaResult.userAgent;
++        return captchaResult.captchaToken;
++    }
++
++    private async getCaptchaResult(taskId: string | null): Promise<CaptchaResult | undefined | null> {
++        if (!taskId) return null;
++        log.info(`Waiting for captcha token from task ${taskId}...`);
++        try {
++            const captchaResult = await GetCaptchaSolverResult(taskId);
++            if (captchaResult.status !== 'ready') {
++                if (captchaResult.status === 'processing') return undefined;
++                else return null;
++            }
++            return {
++                captchaToken: captchaResult.solution.gRecaptchaResponse,
++                userAgent: captchaResult.solution.userAgent,
++            };
++        } catch (err) {
++            log.error('Error while getting captcha token: ', err as Error);
++            return null;
++        }
++    }
++}
++
++export default TexasScheduler;
+diff --git a/backend/src/Config/index.ts b/backend/src/Config/index.ts
+new file mode 100644
+index 0000000..879a14b
+--- /dev/null
++++ b/backend/src/Config/index.ts
+@@ -0,0 +1,65 @@
++import { readFileSync, existsSync } from 'fs';
++import YAML from 'yaml';
++import { configZod, Config } from '../Interfaces/Config';
++import preferredDayList from '../Assets/preferredDay';
++import * as log from '../Log';
++import 'dotenv/config';
++import dayjs from 'dayjs';
++
++const parseConfig = (): Config => {
++    if (!existsSync('./config.yml')) {
++        log.error('Not found config.yml file');
++        process.exit(0);
++    }
++
++    const file = readFileSync('././config.yml', 'utf8');
++    let configData = YAML.parse(file);
++    configData = parsePersonalInfo(configData);
++    configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
++    configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
++    let startDate = dayjs(configData.location.daysAround.startDate);
++    if (!configData.location.daysAround.startDate || !startDate.isValid() || startDate.isBefore(dayjs())) {
++        log.dev('Invalid date in config.yml, using current date');
++        startDate = dayjs();
++    }
++    configData.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
++
++    try {
++        return configZod.parse(configData);
++    } catch (e) {
++        log.error('Config file is not valid');
++        console.error(e);
++        process.exit(1);
++    }
++};
++
++export default parseConfig;
++
++function parsePhoneNumber(phoneNumber: string) {
++    if (!phoneNumber) return null;
++    // Phone format is ########## and we want to convert it to (###) ###-####
++    return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
++}
++
++function parsePreferredDays(preferredDay: string[]): number[] {
++    const convertedPreferredDay = preferredDay.map(day => preferredDayList[day.toLowerCase()]).filter(e => e);
++    return convertedPreferredDay;
++}
++
++function parsePersonalInfo(configData: Config) {
++    if (!configData.personalInfo.loadFromEnv) return configData;
++    log.info('Loading personal info from environment variables.');
++    const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER, CARDNUMBER } = process.env;
++    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN) {
++        log.error('Missing environment variables for personal info. Please refer to example.env file.');
++        process.exit(1);
++    }
++    configData.personalInfo.firstName = FIRSTNAME;
++    configData.personalInfo.lastName = LASTNAME;
++    configData.personalInfo.dob = DOB;
++    configData.personalInfo.email = EMAIL;
++    configData.personalInfo.lastFourSSN = LASTFOURSSN;
++    configData.personalInfo.phoneNumber = PHONENUMBER;
++    configData.personalInfo.cardNumber = CARDNUMBER;
++    return configData;
++}
+diff --git a/backend/src/Interfaces/Auth.ts b/backend/src/Interfaces/Auth.ts
+new file mode 100644
+index 0000000..60f36b2
+--- /dev/null
++++ b/backend/src/Interfaces/Auth.ts
+@@ -0,0 +1,19 @@
++export interface AuthPayload {
++    RecaptchaToken: {
++        Action: 'login';
++        Token: string;
++    };
++    UserName: string;
++    Email: string;
++    CellPhone: string;
++    UserDetails: {
++        FirstName: string;
++        LastName: string;
++        DateOfBirth: string;
++        CardNumber: string;
++        LastFourDigitsSsn: string;
++    };
++    IsEmail: boolean;
++    IsMobile: boolean;
++    SelectedLanguage: string;
++}
+diff --git a/backend/src/Interfaces/AvailableLocation.ts b/backend/src/Interfaces/AvailableLocation.ts
+new file mode 100644
+index 0000000..d25b71b
+--- /dev/null
++++ b/backend/src/Interfaces/AvailableLocation.ts
+@@ -0,0 +1,26 @@
++interface BaseLocationPayload {
++    PreferredDay: number;
++    TypeId: number;
++}
++
++interface CityLocationPayload extends BaseLocationPayload {
++    CityName: string;
++    ZipCode: '';
++}
++
++interface ZipCodeLocationPayload extends BaseLocationPayload {
++    ZipCode: string;
++    CityName: '';
++}
++
++export type AvailableLocationPayload = CityLocationPayload | ZipCodeLocationPayload;
++
++export interface AvailableLocationBase {
++    Id: number;
++    Address: string;
++    Distance: number;
++    Name: string;
++    NextAvailableDate: string;
++}
++
++export type AvailableLocationResponse = (AvailableLocationBase & { ZipCode: string; CityName?: never }) | (AvailableLocationBase & { CityName: string; ZipCode?: never });
+diff --git a/backend/src/Interfaces/AvailableLocationDates.ts b/backend/src/Interfaces/AvailableLocationDates.ts
+new file mode 100644
+index 0000000..d0a8617
+--- /dev/null
++++ b/backend/src/Interfaces/AvailableLocationDates.ts
+@@ -0,0 +1,29 @@
++// This type request to AvailableLocationDates endpoints and check available dates on specific location
++
++export interface AvailableLocationDatesPayload {
++    LocationId: number;
++    PreferredDay: number;
++    SameDay: boolean;
++    StartDate?: null;
++    TypeId: number;
++}
++
++export interface AvailableLocationDatesResponse {
++    MoreDatesAvailable: boolean;
++    FirstAvailableDate: Date;
++    LocationAvailabilityDates: LocationAvailabilityDates[];
++}
++
++interface LocationAvailabilityDates {
++    LocationId: number;
++    ServiceTypeId: number;
++    AvailabilityDate: string;
++    AvailableTimeSlots: AvailableTimeSlots[];
++}
++
++export interface AvailableTimeSlots {
++    FormattedStartDateTime: string;
++    SlotId: number;
++    Duration: number;
++    StartDateTime: string;
++}
+diff --git a/backend/src/Interfaces/BookSlot.ts b/backend/src/Interfaces/BookSlot.ts
+new file mode 100644
+index 0000000..9f68adb
+--- /dev/null
++++ b/backend/src/Interfaces/BookSlot.ts
+@@ -0,0 +1,27 @@
++export interface BookSlotPayload {
++    AdaRequired: boolean;
++    BookingDateTime: string;
++    BookingDuration: number;
++    CardNumber: string;
++    CellPhone: string;
++    DateOfBirth: string;
++    Email: string;
++    FirstName: string;
++    HomePhone: string;
++    Last4Ssn: string;
++    LastName: string;
++    ResponseId: number;
++    SendSms: boolean;
++    ServiceTypeId: number;
++    SiteId: number;
++    SpanishLanguage: 'N' | 'Y';
++}
++
++// Real response have more fields, but we don't need them
++export interface BookSlotResponse {
++    Booking: {
++        BookingId: number;
++        ConfirmationNumber: string;
++        SiteName: string;
++    };
++}
+diff --git a/backend/src/Interfaces/CancelBooking.ts b/backend/src/Interfaces/CancelBooking.ts
+new file mode 100644
+index 0000000..eadf269
+--- /dev/null
++++ b/backend/src/Interfaces/CancelBooking.ts
+@@ -0,0 +1,7 @@
++export interface CancelBookingPayload {
++    ConfirmationNumber: string;
++    DateOfBirth: string;
++    FirstName: string;
++    LastFourDigitsSsn: string;
++    LastName: string;
++}
+diff --git a/backend/src/Interfaces/Captcha.ts b/backend/src/Interfaces/Captcha.ts
+new file mode 100644
+index 0000000..93c893b
+--- /dev/null
++++ b/backend/src/Interfaces/Captcha.ts
+@@ -0,0 +1,19 @@
++export interface CreateTaskResponse {
++    taskId: string;
++    errorId: number;
++    errorCode: string;
++    errorDescription: string;
++}
++
++export interface GetResultResponse {
++    errorId: number;
++    status: string;
++    solution: {
++        gRecaptchaResponse: string;
++        token: string;
++        userAgent: string;
++    };
++    cost: string;
++    ip: string;
++    createTime: number;
++}
+diff --git a/backend/src/Interfaces/Config.ts b/backend/src/Interfaces/Config.ts
+new file mode 100644
+index 0000000..22918c1
+--- /dev/null
++++ b/backend/src/Interfaces/Config.ts
+@@ -0,0 +1,91 @@
++import { z } from 'zod';
++
++const checkStartLowerThanEnd = data => data.start < data.end;
++
++const configZod = z.object({
++    personalInfo: z.object({
++        loadFromEnv: z.boolean().default(false),
++        firstName: z.string(),
++        lastName: z.string(),
++        dob: z.string(),
++        email: z.string(),
++        lastFourSSN: z.string(),
++        phoneNumber: z.string().optional().nullable(),
++        typeId: z.number().optional(),
++        cardNumber: z.string().optional(),
++    }),
++    location: z.object({
++        cityName: z.string().array().optional(),
++        zipCode: z.string().array().optional(),
++        pickDPSLocation: z.boolean().default(false),
++        miles: z.number(),
++        preferredDays: z.number().array(),
++        sameDay: z.boolean(),
++        daysAround: z
++            .object({
++                startDate: z.string(),
++                start: z.number(),
++                end: z.number(),
++            })
++            .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
++        timesAround: z
++            .object({
++                start: z.number(),
++                end: z.number(),
++            })
++            .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
++    }),
++    appSettings: z.object({
++        cancelIfExist: z.boolean().default(false),
++        interval: z.number().default(10000),
++        webserver: z.boolean().default(false),
++        headersTimeout: z.number().default(20000),
++        maxRetry: z.number().default(3),
++        captcha: z
++            .object({
++                strategy: z.enum(['browser', 'solver', 'manual']).default('browser'),
++                solverOptions: z
++                    .object({
++                        solverService: z.enum(['2captcha', 'capsolver']).optional(),
++                        solverApiToken: z.string().optional(),
++                    })
++                    .optional()
++                    .nullable(),
++            })
++            .optional()
++            .nullable()
++            .refine(
++                data => {
++                    if (data.strategy === 'browser' || data.strategy === 'manual') return true;
++                    return (
++                        typeof data.solverOptions.solverService === 'string' &&
++                        typeof data.solverOptions.solverApiToken === 'string' &&
++                        data.solverOptions.solverApiToken.length > 0
++                    );
++                },
++                {
++                    message: 'If you want to use solver, please provide all required fields',
++                },
++            ),
++        pushNotifcation: z
++            .object({
++                enabled: z.boolean().default(false),
++                baseURL: z.string().optional(),
++                topicName: z.string().optional(),
++                token: z.string().optional(),
++            })
++            .refine(
++                data => {
++                    if (!data.enabled) return true;
++                    return typeof data.baseURL === 'string' && typeof data.topicName === 'string' && typeof data.token === 'string';
++                },
++                {
++                    message: 'If you want to enable push notification, please provide all required fields',
++                },
++            ),
++    }),
++});
++
++type Config = z.infer<typeof configZod>;
++
++export { Config, configZod };
+diff --git a/backend/src/Interfaces/Eligibility.ts b/backend/src/Interfaces/Eligibility.ts
+new file mode 100644
+index 0000000..1ec3f61
+--- /dev/null
++++ b/backend/src/Interfaces/Eligibility.ts
+@@ -0,0 +1,7 @@
++export interface EligibilityPayload {
++    FirstName: string;
++    LastName: string;
++    DateOfBirth: string;
++    CardNumber: string;
++    LastFourDigitsSsn: string;
++}
+diff --git a/backend/src/Interfaces/ExistBooking.ts b/backend/src/Interfaces/ExistBooking.ts
+new file mode 100644
+index 0000000..60d9205
+--- /dev/null
++++ b/backend/src/Interfaces/ExistBooking.ts
+@@ -0,0 +1,18 @@
++export interface ExistBookingPayload {
++    FirstName: string;
++    LastName: string;
++    DateOfBirth: string;
++    LastFourDigitsSsn: string;
++}
++
++// Real response have more fields, but we don't need them
++export interface ExistBookingResponse {
++    FirstName: string;
++    LastName: string;
++    Last4Ssn: string;
++    DateOfBirth: string;
++    ConfirmationNumber: string;
++    BookingDateTime: string;
++    SiteName: string;
++    ServiceTypeId: number;
++}
+diff --git a/backend/src/Interfaces/HoldSlot.ts b/backend/src/Interfaces/HoldSlot.ts
+new file mode 100644
+index 0000000..707340a
+--- /dev/null
++++ b/backend/src/Interfaces/HoldSlot.ts
+@@ -0,0 +1,12 @@
++export interface HoldSlotPayload {
++    DateOfBirth: string;
++    FirstName: string;
++    Last4Ssn: string;
++    LastName: string;
++    SlotId: number;
++}
++
++export interface HoldSlotResponse {
++    SlotHeldSuccessfully: boolean;
++    ErrorMessage?: string;
++}
+diff --git a/backend/src/Log/index.ts b/backend/src/Log/index.ts
+new file mode 100644
+index 0000000..a33d41b
+--- /dev/null
++++ b/backend/src/Log/index.ts
+@@ -0,0 +1,27 @@
++import { yellow, green, red } from 'colorette';
++
++import dayjs from 'dayjs';
++import utc from 'dayjs/plugin/utc';
++import timezone from 'dayjs/plugin/timezone';
++
++dayjs.extend(utc);
++dayjs.extend(timezone);
++dayjs.tz.setDefault('America/Chicago');
++
++const timeNow = () => dayjs().format('MM/DD/YYYY h:mm:ss');
++
++const msg = (func: any, message: string) => func(`${yellow(`[${timeNow()}]`)} ${green(message)}`);
++
++const error = (message = 'Unknown error', err?: Error) => {
++    console.error(`[${yellow(timeNow())}] ERROR: ${red(message)}`);
++    if (err) console.error(err);
++};
++
++const info = (message: string) => msg(console.info, message);
++
++// Development mode logging
++const dev = (message: string) => (process.env.NODE_ENV === 'development' ? msg(console.info, `${yellow('DEBUG ->')} ${message}`) : null);
++
++const warn = (message: string) => msg(console.warn, `${yellow('WARNING ->')} ${message}`);
++
++export { error, info, warn, dev };
+diff --git a/backend/src/PushNotification/index.ts b/backend/src/PushNotification/index.ts
+new file mode 100644
+index 0000000..0802d2e
+--- /dev/null
++++ b/backend/src/PushNotification/index.ts
+@@ -0,0 +1,14 @@
++import axios from 'axios';
++import parseConfig from '../Config';
++const config = parseConfig();
++
++const pushNotifcation = async (message: string) => {
++    await axios.post(`${config.appSettings.pushNotifcation.baseURL}/${config.appSettings.pushNotifcation.topicName}`, message, {
++        headers: {
++            Authorization: `Bearer ${config.appSettings.pushNotifcation.token}`,
++            Title: 'DPS Scheduler',
++        },
++    });
++};
++
++export { pushNotifcation };
+diff --git a/backend/tsconfig.json b/backend/tsconfig.json
+new file mode 100644
+index 0000000..ddb539b
+--- /dev/null
++++ b/backend/tsconfig.json
+@@ -0,0 +1,13 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "CommonJS",
++    "outDir": "./dist",
++    "rootDir": "./src",
++    "strict": true,
++    "esModuleInterop": true,
++    "skipLibCheck": true,
++    "forceConsistentCasingInFileNames": true
++  },
++  "include": ["src/**/*"]
++}
