@@ -1,7 +1,7 @@
 import https from 'https';
 import axios, { AxiosResponse } from 'axios';
 import sleep from 'timers/promises';
-import parseConfig from '../Config';
+import { EventEmitter } from 'events';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -40,12 +40,14 @@ interface CaptchaResult {
     userAgent: string;
 }
 
-class TexasScheduler {
+export class TexasScheduler extends EventEmitter {
     private readonly requestClient = axios.create({
         baseURL: 'https://apptapi.txdpsscheduler.com',
         httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
-    public config = parseConfig();
+    public config: any;
+    private abortController = new AbortController();
+    private stopped = false;
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
 
     private availableLocation: AvailableLocationResponse[] | null = null;
@@ -57,16 +59,26 @@ class TexasScheduler {
     private responseId: number | null = null;
     private userAgent: string | null = null;
 
-    public constructor() {
-        if (this.config.appSettings.webserver)
-            // eslint-disable-next-line  @typescript-eslint/no-require-imports
-            require('http')
-                .createServer((req: any, res: any) => res.end('Bot is alive!'))
-                .listen(process.env.PORT || 3000);
+    public constructor(config: any) {
+        super();
+        this.config = config;
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
         if (!existsSync('cache')) mkdirSync('cache');
         this.run();
+    }
+
+    public stop() {
+        this.stopped = true;
+        this.abortController.abort();
+        this.queue.pause();
+        this.queue.clear();
+        log.info('Job stopped manually.');
+    }
+
+    public submitManualToken(token: string) {
+        this.authToken = token;
+        this.emit('manual_token_received');
     }
 
     public async run() {
@@ -205,7 +217,8 @@ class TexasScheduler {
         const response = await this.getAllLocation();
         if (response.length === 0) {
             log.error('No Available location found! You can try add more zipcodes or set city name!');
-            process.exit(0);
+            this.stop();
+            return;
         }
         if (this.config.location.pickDPSLocation) {
             if (existsSync('././cache/location.json')) {
@@ -222,11 +235,15 @@ class TexasScheduler {
                     title: `${el.Name} - ${el.Address} - ${el.Distance} miles away from ${el.ZipCode ? el.ZipCode : el.CityName}!`,
                     value: el,
                 })),
-                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
+                onState: (state: { aborted: boolean }) => {
+                    if (state.aborted) this.stop();
+                },
             });
+            if (this.stopped) return;
             if (!userResponse.location || userResponse.location.length === 0) {
                 log.error('You must choose at least one location!');
-                process.exit(1);
+                this.stop();
+                return;
             }
             this.availableLocation = userResponse.location;
             writeFileSync('././cache/location.json', JSON.stringify(userResponse.location));
@@ -235,7 +252,8 @@ class TexasScheduler {
         const filteredResponse = response.filter((location: AvailableLocationResponse) => location.Distance < this.config.location.miles);
         if (filteredResponse.length === 0) {
             log.error(`No Available location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
-            process.exit(0);
+            this.stop();
+            return;
         }
         log.info(`Found ${filteredResponse.length} Available location that match your criteria`);
         log.info(`${filteredResponse.map(el => el.Name).join(', ')}`);
@@ -247,7 +265,7 @@ class TexasScheduler {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
         const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
-        for (; ;) {
+        while (!this.stopped) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
             await sleep.setTimeout(this.config.appSettings.interval);
@@ -299,7 +317,8 @@ class TexasScheduler {
             if (!this.queue.isPaused) this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
                 log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
-                process.exit(0);
+                this.stop();
+                return Promise.resolve(true);
             }
             this.holdSlot(booking, location);
             return Promise.resolve(true);
@@ -367,7 +386,8 @@ class TexasScheduler {
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             log.error(`Got ${response.status} status code, retrying failed!`);
-            process.exit(1);
+            this.stop();
+            throw new Error(`Got ${response.status} status code, retrying failed!`);
         }
         return response;
     }
@@ -440,7 +460,8 @@ class TexasScheduler {
                     log.error('Failed to send notification', error);
                 });
             }
-            process.exit(0);
+            this.stop();
+            return;
         } else {
             if (this.queue.isPaused) this.queue.start();
             log.error('Failed to book slot');
@@ -476,20 +497,27 @@ class TexasScheduler {
             const response = (await this.requestApi('/api/v1/account/auth', 'POST', requestBody).then(res => res.data)) as any;
             this.authToken = response.data.token;
         } else if (this.config.appSettings.captcha.strategy === 'browser') {
-            const response = await getAuthTokenFromBroswer();
             try {
+                const response = await getAuthTokenFromBroswer();
                 const parsed = JSON.parse(response);
                 this.authToken = parsed.data.token;
-            } catch {
-                this.authToken = response;
+            } catch (err) {
+                log.error('Browser auth failed. Waiting for manual token...');
+                this.emit('AUTH_REQUIRED');
+                await new Promise<void>((resolve) => {
+                    this.once('manual_token_received', resolve);
+                });
             }
         } else if (this.config.appSettings.captcha.strategy === 'manual') {
             const response = await prompts({
                 type: 'text',
                 name: 'token',
                 message: 'Your captcha token is expired. Enter the new token: ',
-                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
+                onState: (state: { aborted: boolean }) => {
+                    if (state.aborted) this.stop();
+                },
             });
+            if (this.stopped) return;
             this.authToken = response.token;
         }
 
