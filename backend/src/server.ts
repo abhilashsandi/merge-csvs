@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { TexasScheduler } from './Client';
-import { logEmitter } from './Log';
 
 const app = express();
 app.use(cors());
@@ -88,12 +87,15 @@ app.get('/api/schedule/logs/:jobId', (req, res) => {
 
     job.scheduler.on('log', logListener);
 
-    job.scheduler.on('AUTH_REQUIRED', () => {
+    const authListener = () => {
         res.write(`data: ${JSON.stringify({ type: 'AUTH_REQUIRED', message: 'Manual Auth Token Required' })}\n\n`);
-    });
+    };
+
+    job.scheduler.on('AUTH_REQUIRED', authListener);
 
     req.on('close', () => {
         job.scheduler.off('log', logListener);
+        job.scheduler.off('AUTH_REQUIRED', authListener);
     });
 });
 

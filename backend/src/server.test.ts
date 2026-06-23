@@ -10,7 +10,8 @@ test('Express API Tests', async (t) => {
     const originalRun = TexasScheduler.prototype.run;
     t.beforeEach(() => {
         TexasScheduler.prototype.run = async function() {
-            // Mock run to do nothing
+            // Mock run to simulate pending job
+            return new Promise(() => {});
         };
     });
 
