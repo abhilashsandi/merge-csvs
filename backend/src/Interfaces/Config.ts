@@ -37,7 +37,7 @@ const configZod = z.object({
     }),
     appSettings: z.object({
         cancelIfExist: z.boolean().default(false),
-        interval: z.number().default(10000),
+        interval: z.number().default(5000),
         webserver: z.boolean().default(false),
         headersTimeout: z.number().default(20000),
         maxRetry: z.number().default(3),

@@ -103,7 +103,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 log.error('URL capture timed out. Capturing screenshot for debug...');
-                page.screenshot({ path: 'cache/debug_timeout.png' }).catch(() => null);
+                page.screenshot({ path: 'cache/debug_timeout.png' }).catch((e) => log.warn(`Failed to capture debug screenshot: ${e}`));
                 reject(new Error('Auth token retrieval timed out after 60 seconds'));
             }, 60000);
 
@@ -123,7 +123,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                 await page.click('.v-card__actions.text-center > button');
                 page.waitForSelector('.v-dialog--active')
                     .then(() => setTimeout(() => tryAgainDialog(page), 5000))
-                    .catch(() => null);
+                    .catch((e) => log.warn(`Failed to wait for selector: ${e}`));
             });
         });
 
@@ -138,7 +138,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             if (loginBtn) await loginBtn.click();
             page.waitForSelector('.v-dialog--active')
                 .then(() => setTimeout(() => tryAgainDialog(page, retryTime + 1), 5000))
-                .catch(() => null);
+                .catch((e) => log.warn(`Failed to wait for selector: ${e}`));
         };
 
         // Wait for the auth token

@@ -150,48 +150,47 @@ class TexasScheduler {
         return this.filterAndSortLocations(finalArray);
     }
 
-    private async getLocationForCity(cityName: string, typeId: number): Promise<AvailableLocationResponse[]> {
-        const requestBody: AvailableLocationPayload = {
-            CityName: cityName,
-            PreferredDay: 0,
-            TypeId: typeId,
-            ZipCode: '',
-        };
+    private async getLocationHelper(identifier: string, isCity: boolean, typeId: number): Promise<AvailableLocationResponse[]> {
+        const requestBody: AvailableLocationPayload = isCity 
+            ? {
+                  CityName: identifier,
+                  PreferredDay: 0,
+                  TypeId: typeId,
+                  ZipCode: '',
+              }
+            : {
+                  CityName: '',
+                  PreferredDay: 0,
+                  TypeId: typeId,
+                  ZipCode: identifier,
+              };
 
         const response = await this.fetchLocationData(requestBody);
+        const typeStr = isCity ? 'city' : 'zipcode';
+        const typeStrCaps = isCity ? 'City' : 'zipcode';
+
         if (response === null) {
-            log.warn(`No location found for city: ${cityName}`);
+            log.warn(`No location found for ${typeStr}: ${identifier}`);
             sleep.setTimeout(2000);
             return [];
         }
 
         if (response.length !== 0) {
-            log.info(`Found ${response.length} locations for City: ${cityName}`);
+            log.info(`Found ${response.length} locations for ${typeStrCaps}: ${identifier}`);
         }
-        response.forEach(el => (el.CityName = cityName));
+        response.forEach(el => {
+            if (isCity) el.CityName = identifier;
+            else el.ZipCode = identifier;
+        });
         return response;
     }
 
+    private async getLocationForCity(cityName: string, typeId: number): Promise<AvailableLocationResponse[]> {
+        return this.getLocationHelper(cityName, true, typeId);
+    }
+
     private async getLocationForZipCode(zipCode: string, typeId: number): Promise<AvailableLocationResponse[]> {
-        const requestBody: AvailableLocationPayload = {
-            CityName: '',
-            PreferredDay: 0,
-            TypeId: typeId,
-            ZipCode: zipCode,
-        };
-
-        const response = await this.fetchLocationData(requestBody);
-        if (response === null) {
-            log.warn(`No location found for zipcode: ${zipCode}`);
-            sleep.setTimeout(2000);
-            return [];
-        }
-
-        if (response.length !== 0) {
-            log.info(`Found ${response.length} locations for zipcode: ${zipCode}`);
-        }
-        response.forEach(el => (el.ZipCode = zipCode));
-        return response;
+        return this.getLocationHelper(zipCode, false, typeId);
     }
 
     private async fetchLocationData(requestBody: AvailableLocationPayload): Promise<AvailableLocationResponse[]> {
