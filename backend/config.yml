@@ -18,3 +18,7 @@ location:
     end: 1700
 appSettings:
   cancelIfExist: false
+  captcha:
+    strategy: "browser"
+  pushNotifcation:
+    enabled: false
