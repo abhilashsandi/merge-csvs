@@ -13,6 +13,13 @@ app.use(express_1.default.json());
 const jobs = {};
 app.post('/api/schedule/start', async (req, res) => {
     const config = req.body;
+    let startDate = require('dayjs')(config.location?.daysAround?.startDate);
+    if (!config.location?.daysAround?.startDate || !startDate.isValid() || startDate.isBefore(require('dayjs')().startOf('day'))) {
+        startDate = require('dayjs')();
+    }
+    if (config.location && config.location.daysAround) {
+        config.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
+    }
     const jobId = (0, uuid_1.v4)();
     const scheduler = new Client_1.TexasScheduler(config);
     // Timeout after config max time (default 30 mins)
@@ -79,9 +86,15 @@ app.get('/api/schedule/logs/:jobId', (req, res) => {
         res.write(`data: ${JSON.stringify({ type: 'AUTH_REQUIRED', message: 'Manual Auth Token Required' })}\n\n`);
     };
     job.scheduler.on('AUTH_REQUIRED', authListener);
+    const finishedListener = () => {
+        res.write(`data: ${JSON.stringify({ type: 'FINISHED', message: 'Automation complete or terminated.' })}\n\n`);
+        res.end();
+    };
+    job.scheduler.on('FINISHED', finishedListener);
     req.on('close', () => {
         job.scheduler.off('log', logListener);
         job.scheduler.off('AUTH_REQUIRED', authListener);
+        job.scheduler.off('FINISHED', finishedListener);
     });
 });
 const PORT = process.env.PORT || 3001;

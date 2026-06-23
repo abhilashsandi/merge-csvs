@@ -101,7 +101,10 @@ export class TexasScheduler extends EventEmitter {
 
     public async run() {
         try {
-            if (existsSync('././cache/token.tmp')) {
+            if (this.config.appSettings?.authToken) {
+                this.logInfo('Using provided Auth Token from config.');
+                this.authToken = this.config.appSettings.authToken;
+            } else if (existsSync('././cache/token.tmp')) {
                 this.logInfo('Getting auth token from cache...');
                 this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
             } else await this.getAuthToken();
@@ -118,12 +121,15 @@ export class TexasScheduler extends EventEmitter {
             }
             await this.requestAvailableLocation();
             await this.getLocationDatesAll();
+            this.emit('FINISHED');
         } catch (err: any) {
             if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
                 this.logInfo('Scheduler aborted successfully.');
             } else {
-                throw err;
+                this.logError(`Fatal Error: ${err.message || err}`);
             }
+            this.emit('FINISHED');
+            throw err;
         }
     }
 
@@ -351,7 +357,11 @@ export class TexasScheduler extends EventEmitter {
                 this.stop();
                 return Promise.resolve(true);
             }
-            this.holdSlot(booking, location);
+            try {
+                await this.holdSlot(booking, location);
+            } catch (err: any) {
+                this.logError('Error holding/booking slot', err);
+            }
             return Promise.resolve(true);
         }
         this.logInfo(
@@ -486,7 +496,7 @@ export class TexasScheduler extends EventEmitter {
             this.logInfo(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             this.logInfo(`Visiting this link to print your booking:`);
             this.logInfo(appointmentURL);
-            if (this.config.appSettings.pushNotifcation.enabled) {
+            if (this.config.appSettings.pushNotifcation?.enabled) {
                 this.logInfo('Sending notification...');
                 await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
                     this.logError('Failed to send notification', error);
@@ -530,7 +540,9 @@ export class TexasScheduler extends EventEmitter {
             this.authToken = response.data.token;
         } else if (this.config.appSettings.captcha.strategy === 'browser') {
             try {
-                const response = await getAuthTokenFromBroswer();
+                const response = await getAuthTokenFromBroswer(this.config, (msg, type) => {
+                    this.emit('log', { type: type || 'info', message: `[${dayjs().format('MM/DD/YYYY h:mm:ss')}] ${msg}` });
+                });
                 const parsed = JSON.parse(response);
                 this.authToken = parsed.data.token;
             } catch (err) {
