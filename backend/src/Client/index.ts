@@ -65,7 +65,6 @@ export class TexasScheduler extends EventEmitter {
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
         if (!existsSync('cache')) mkdirSync('cache');
-        this.run();
     }
 
     public stop() {
