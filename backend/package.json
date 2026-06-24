@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "build": "npm install --include=dev && tsc",
+    "build": "npm install --include=dev && node node_modules/puppeteer/install.mjs && tsc",
     "start": "node dist/server.js",
     "test": "node --test"
   },
