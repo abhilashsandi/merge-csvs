@@ -71,6 +71,41 @@ app.post('/api/schedule/stop', (req, res) => {
     }
 });
 
+app.post('/api/admin/jobs', (req, res) => {
+    const { password } = req.body;
+    if (password !== '2026admin') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const activeJobs = Object.keys(jobs).map(jobId => {
+        const job = jobs[jobId];
+        return {
+            jobId,
+            firstName: job.scheduler.config?.personalInfo?.firstName,
+            lastName: job.scheduler.config?.personalInfo?.lastName,
+            email: job.scheduler.config?.personalInfo?.email,
+            typeId: job.scheduler.config?.personalInfo?.typeId,
+            zipCode: job.scheduler.config?.location?.zipCode,
+        };
+    });
+    res.json({ jobs: activeJobs });
+});
+
+app.post('/api/admin/jobs/:jobId/stop', (req, res) => {
+    const { password } = req.body;
+    if (password !== '2026admin') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { jobId } = req.params;
+    if (jobs[jobId]) {
+        jobs[jobId].scheduler.stop();
+        clearTimeout(jobs[jobId].timeoutHandle);
+        delete jobs[jobId];
+        res.json({ status: 'stopped' });
+    } else {
+        res.status(404).json({ error: 'Job not found' });
+    }
+});
+
 app.post('/api/schedule/token', (req, res) => {
     const { jobId, token } = req.body;
     if (jobs[jobId]) {
