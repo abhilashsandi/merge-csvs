@@ -261,8 +261,7 @@ export class TexasScheduler extends EventEmitter {
         const response = await this.getAllLocation();
         if (response.length === 0) {
             this.logError('No Available location found! You can try add more zipcodes or set city name!');
-            this.stop();
-            return;
+            throw new Error('No Available location found');
         }
         if (this.config.location.pickDPSLocation) {
             if (existsSync('././cache/location.json')) {
@@ -286,8 +285,7 @@ export class TexasScheduler extends EventEmitter {
             if (this.stopped) return;
             if (!userResponse.location || userResponse.location.length === 0) {
                 this.logError('You must choose at least one location!');
-                this.stop();
-                return;
+                throw new Error('You must choose at least one location');
             }
             this.availableLocation = userResponse.location;
             writeFileSync('././cache/location.json', JSON.stringify(userResponse.location));
@@ -296,8 +294,7 @@ export class TexasScheduler extends EventEmitter {
         const filteredResponse = response.filter((location: AvailableLocationResponse) => location.Distance < this.config.location.miles);
         if (filteredResponse.length === 0) {
             this.logError(`No Available location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
-            this.stop();
-            return;
+            throw new Error('No locations found within specified distance');
         }
         this.logInfo(`Found ${filteredResponse.length} Available location that match your criteria`);
         this.logInfo(`${filteredResponse.map(el => el.Name).join(', ')}`);
@@ -424,7 +421,6 @@ export class TexasScheduler extends EventEmitter {
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             this.logError(`Network request failed after ${this.config.appSettings.maxRetry || 5} retries: ${err.message}`);
-            this.stop();
             throw err;
         }
 
@@ -453,7 +449,6 @@ export class TexasScheduler extends EventEmitter {
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             this.logError(`Got ${response.status} status code, retrying failed!`);
-            this.stop();
             throw new Error(`Got ${response.status} status code, retrying failed!`);
         }
         return response;
