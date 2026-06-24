@@ -10,7 +10,7 @@ dayjs.tz.setDefault('America/Chicago');
 
 export const logEmitter = new EventEmitter();
 
-const timeNow = () => dayjs().format('MM/DD/YYYY h:mm:ss');
+const timeNow = () => dayjs.tz().format('MM/DD/YYYY h:mm:ss A');
 
 const emitLog = (type: string, message: string) => {
     const formattedMessage = `[${timeNow()}] ${message}`;
