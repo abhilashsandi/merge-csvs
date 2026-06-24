@@ -799,11 +799,24 @@ export default function DpsScheduler() {
                                             <label className={labelCls}>Poll Interval (ms)</label>
                                             <div className="relative">
                                                 <div className={iconCls}><Clock className={`h-4 w-4 ${iconColor}`} /></div>
-                                                <input type="number" name="interval" value={formData.interval}
-                                                    onChange={handleNumberChange} min={1000}
-                                                    className={inputCls()} disabled={isRunning} />
+                                                <select name="interval" value={formData.interval}
+                                                    onChange={handleNumberChange}
+                                                    className={inputCls()} disabled={isRunning}>
+                                                    <option value={1000}>1 sec</option>
+                                                    <option value={3000}>3 secs</option>
+                                                    <option value={5000}>5 secs</option>
+                                                    <option value={10000}>10 secs</option>
+                                                    <option value={30000}>30 secs</option>
+                                                    <option value={60000}>1 min</option>
+                                                    <option value={120000}>2 mins</option>
+                                                    <option value={300000}>5 mins</option>
+                                                    <option value={600000}>10 mins</option>
+                                                    <option value={900000}>15 mins</option>
+                                                    <option value={1800000}>30 mins</option>
+                                                    <option value={3600000}>1 hour</option>
+                                                    <option value={7200000}>2 hours</option>
+                                                </select>
                                             </div>
-                                            <p className="text-[10px] text-gray-400 dark:text-zinc-600 mt-1">Min 1000ms recommended</p>
                                         </div>
                                         <div>
                                             <label className={labelCls}>Max Retries</label>

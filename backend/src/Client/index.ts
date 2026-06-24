@@ -100,36 +100,48 @@ export class TexasScheduler extends EventEmitter {
     }
 
     public async run() {
-        try {
-            if (this.config.appSettings?.authToken) {
-                this.logInfo('Using provided Auth Token from config.');
-                this.authToken = this.config.appSettings.authToken;
-            } else if (existsSync('././cache/token.tmp')) {
-                this.logInfo('Getting auth token from cache...');
-                this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
-            } else await this.getAuthToken();
-            if (this.responseId === null) await this.getResponseId();
-            this.existBooking = await this.checkExistBooking();
-            const { exist, response } = this.existBooking;
-            if (exist) {
-                this.logWarn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
-                if (!this.config.appSettings.cancelIfExist) {
-                    this.logWarn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+        let runRetries = 0;
+        while (runRetries < 5 && !this.stopped) {
+            try {
+                if (this.config.appSettings?.authToken) {
+                    this.logInfo('Using provided Auth Token from config.');
+                    this.authToken = this.config.appSettings.authToken;
+                } else if (existsSync('././cache/token.tmp')) {
+                    this.logInfo('Getting auth token from cache...');
+                    this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
+                } else await this.getAuthToken();
+                if (this.responseId === null) await this.getResponseId();
+                this.existBooking = await this.checkExistBooking();
+                const { exist, response } = this.existBooking;
+                if (exist) {
+                    this.logWarn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
+                    if (!this.config.appSettings.cancelIfExist) {
+                        this.logWarn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+                    } else {
+                        this.logWarn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                    }
+                }
+                await this.requestAvailableLocation();
+                await this.getLocationDatesAll();
+                this.emit('FINISHED');
+                break; // success, break the retry loop
+            } catch (err: any) {
+                if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
+                    this.logInfo('Scheduler aborted successfully.');
+                    this.emit('FINISHED');
+                    break;
                 } else {
-                    this.logWarn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                    this.logError(`Fatal Error: ${err.message || err}`);
+                    runRetries++;
+                    if (runRetries >= 5) {
+                        this.logError('Max retries reached (5). Stopping scheduler.');
+                        this.emit('FINISHED');
+                        throw err;
+                    }
+                    this.logInfo(`Retrying main loop in 10s... (Retry ${runRetries}/5)`);
+                    try { await sleep.setTimeout(10000, undefined, { signal: this.abortController.signal }); } catch { break; }
                 }
             }
-            await this.requestAvailableLocation();
-            await this.getLocationDatesAll();
-            this.emit('FINISHED');
-        } catch (err: any) {
-            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
-                this.logInfo('Scheduler aborted successfully.');
-            } else {
-                this.logError(`Fatal Error: ${err.message || err}`);
-            }
-            this.emit('FINISHED');
-            throw err;
         }
     }
 
@@ -393,15 +405,28 @@ export class TexasScheduler extends EventEmitter {
         };
         if (this.authToken) headers['Authorization'] = this.authToken;
 
-        const response = await this.requestClient.request({
-            method,
-            url: path,
-            headers,
-            timeout: this.config.appSettings.headersTimeout,
-            data: method === 'POST' ? body : undefined, // Include body only for POST requests
-            validateStatus: () => true,
-            signal: this.abortController.signal,
-        });
+        let response;
+        try {
+            response = await this.requestClient.request({
+                method,
+                url: path,
+                headers,
+                timeout: this.config.appSettings.headersTimeout,
+                data: method === 'POST' ? body : undefined, // Include body only for POST requests
+                validateStatus: () => true,
+                signal: this.abortController.signal,
+            });
+        } catch (err: any) {
+            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'canceled') throw err;
+            if (retryTime < (this.config.appSettings.maxRetry || 5)) {
+                this.logWarn(`Network request failed: ${err.message}. Retrying (${retryTime + 1}/${this.config.appSettings.maxRetry || 5})...`);
+                await sleep.setTimeout(5000, undefined, { signal: this.abortController.signal });
+                return this.requestApi(path, method, body, retryTime + 1);
+            }
+            this.logError(`Network request failed after ${this.config.appSettings.maxRetry || 5} retries: ${err.message}`);
+            this.stop();
+            throw err;
+        }
 
         if (response.status !== 200) {
             this.logWarn(`Got ${response.status} status code`);
@@ -423,8 +448,8 @@ export class TexasScheduler extends EventEmitter {
                 await sleep.setTimeout(10000, undefined, { signal: this.abortController.signal });
                 return this.requestApi(path, method, body, retryTime + 1);
             }
-            if (retryTime < this.config.appSettings.maxRetry) {
-                this.logInfo(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
+            if (retryTime < (this.config.appSettings.maxRetry || 5)) {
+                this.logInfo(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry || 5})`);
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             this.logError(`Got ${response.status} status code, retrying failed!`);

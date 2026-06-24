@@ -168,9 +168,15 @@ export const getAuthTokenFromBroswer = async (config: any, onLog?: (msg: string,
                 emitLog(`Intercepted: ${event.response.url} (Status: ${event.response.status})`, 'dev');
                 if (event.response.url.includes('/api/v1/account/auth') && event.response.status === 200) {
                     emitLog('Auth endpoint hit! Extracting token...');
-                    const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
-                    clearTimeout(timeout);
-                    resolve(response.body);
+                    try {
+                        const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
+                        if (response.body) {
+                            clearTimeout(timeout);
+                            resolve(response.body);
+                        }
+                    } catch (e) {
+                        emitLog(`Skipping OPTIONS request body: ${e}`, 'dev');
+                    }
                 }
             });
 
