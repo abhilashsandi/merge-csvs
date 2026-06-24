@@ -15,6 +15,12 @@ const jobs: Record<string, JobEntry> = {};
 
 app.post('/api/schedule/start', async (req, res) => {
     const config = req.body;
+    
+    // Validate request body
+    if (!config || !config.personalInfo) {
+        return res.status(400).json({ error: 'Invalid configuration: missing personalInfo' });
+    }
+
     let startDate = require('dayjs')(config.location?.daysAround?.startDate);
     if (!config.location?.daysAround?.startDate || !startDate.isValid() || startDate.isBefore(require('dayjs')().startOf('day'))) {
         startDate = require('dayjs')();
