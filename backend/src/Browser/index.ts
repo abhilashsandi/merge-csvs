@@ -23,7 +23,10 @@ export const getAuthTokenFromBroswer = async (config: any, onLog?: (msg: string,
 
     try {
         const isHeadless = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production' || !process.env.DISPLAY;
-        emitLog(`Launching browser instance (headless=${isHeadless})...`);
+        // Use PUPPETEER_EXECUTABLE_PATH if set (e.g. system Chrome on Render),
+        // otherwise fall back to puppeteer's bundled Chrome
+        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || executablePath();
+        emitLog(`Launching browser instance (headless=${isHeadless}, chrome=${chromePath})...`);
         const browser = await puppeteer.launch({
             headless: isHeadless,
             slowMo: isHeadless ? 0 : 10,
@@ -38,7 +41,7 @@ export const getAuthTokenFromBroswer = async (config: any, onLog?: (msg: string,
                 '--single-process',
                 '--disk-cache-size=0',
             ],
-            executablePath: executablePath(),
+            executablePath: chromePath,
             timeout: 60000,
         });
         const [page] = await browser.pages();
