@@ -101,7 +101,8 @@ export class TexasScheduler extends EventEmitter {
 
     public async run() {
         let runRetries = 0;
-        while (runRetries < 5 && !this.stopped) {
+        const maxRetries = this.config.appSettings?.maxRetry || 5;
+        while (runRetries < maxRetries && !this.stopped) {
             try {
                 if (this.config.appSettings?.authToken) {
                     this.logInfo('Using provided Auth Token from config.');
@@ -122,6 +123,10 @@ export class TexasScheduler extends EventEmitter {
                     }
                 }
                 await this.requestAvailableLocation();
+                
+                // If we reached here, startup was fully successful. Reset consecutive run retries.
+                runRetries = 0;
+
                 await this.getLocationDatesAll();
                 this.emit('FINISHED');
                 break; // success, break the retry loop
@@ -133,12 +138,12 @@ export class TexasScheduler extends EventEmitter {
                 } else {
                     this.logError(`Fatal Error: ${err.message || err}`);
                     runRetries++;
-                    if (runRetries >= 5) {
-                        this.logError('Max retries reached (5). Stopping scheduler.');
+                    if (runRetries >= maxRetries) {
+                        this.logError(`Max consecutive retries reached (${maxRetries}). Stopping scheduler.`);
                         this.emit('FINISHED');
                         throw err;
                     }
-                    this.logInfo(`Retrying main loop in 10s... (Retry ${runRetries}/5)`);
+                    this.logInfo(`Retrying main loop in 10s... (Retry ${runRetries}/${maxRetries})`);
                     try { await sleep.setTimeout(10000, undefined, { signal: this.abortController.signal }); } catch { break; }
                 }
             }
