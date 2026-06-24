@@ -193,6 +193,16 @@ export default function DpsScheduler() {
     };
     const baseUrl = getBaseUrl();
 
+    // ── Helpers: persist active job ──
+    const saveActiveJob = (id: string, currentLogs: string[]) => {
+        try {
+            localStorage.setItem('dpsActiveJob', JSON.stringify({ jobId: id, logs: currentLogs }));
+        } catch { /* ignore */ }
+    };
+    const clearActiveJob = () => {
+        try { localStorage.removeItem('dpsActiveJob'); } catch { /* ignore */ }
+    };
+
     // ── Init ──
     useEffect(() => {
         // Check session auth
@@ -210,9 +220,26 @@ export default function DpsScheduler() {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         setIsDark(prefersDark);
 
+        // Reconnect to active job if one exists
+        try {
+            const activeJob = localStorage.getItem('dpsActiveJob');
+            if (activeJob) {
+                const { jobId: savedId, logs: savedLogs } = JSON.parse(activeJob);
+                if (savedId) {
+                    const restoredLogs: string[] = savedLogs || [];
+                    restoredLogs.push('— Reconnecting to running job…');
+                    setJobId(savedId);
+                    setIsRunning(true);
+                    setLogs(restoredLogs);
+                    connectSSEWithLogs(savedId, restoredLogs);
+                }
+            }
+        } catch { /* ignore */ }
+
         return () => {
             if (eventSourceRef.current) eventSourceRef.current.close();
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── Apply dark class to html ──
@@ -340,8 +367,10 @@ export default function DpsScheduler() {
             const data = await res.json();
             if (data.jobId) {
                 setJobId(data.jobId);
-                connectSSE(data.jobId);
-                setLogs(prev => [...prev, `Scheduler started. Job ID: ${data.jobId}`]);
+                const initialLogs = ['Initializing scheduler…', `Scheduler started. Job ID: ${data.jobId}`];
+                setLogs(initialLogs);
+                saveActiveJob(data.jobId, initialLogs);
+                connectSSE(data.jobId, initialLogs);
             } else {
                 setLogs(prev => [...prev, `Error: ${JSON.stringify(data)}`]);
                 setIsRunning(false);
@@ -369,6 +398,7 @@ export default function DpsScheduler() {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
         }
+        clearActiveJob();
         setIsRunning(false);
         setJobId(null);
     };
@@ -390,47 +420,63 @@ export default function DpsScheduler() {
         }
     };
 
-    const connectSSE = (id: string) => {
+    // connectSSEWithLogs: used on reconnect (accepts initial log array to persist against)
+    const connectSSEWithLogs = (id: string, initialLogs: string[]) => {
         if (eventSourceRef.current) eventSourceRef.current.close();
         let errorCount = 0;
+        // Track current logs in a ref so we can persist them without stale closures
+        const logsRef = { current: [...initialLogs] };
         const eventSource = new EventSource(`${baseUrl}/api/schedule/logs/${id}`);
         eventSourceRef.current = eventSource;
 
+        const appendLog = (msg: string) => {
+            logsRef.current = [...logsRef.current, msg];
+            setLogs([...logsRef.current]);
+            saveActiveJob(id, logsRef.current);
+        };
+
         eventSource.onmessage = (event) => {
-            errorCount = 0; // reset on successful message
+            errorCount = 0;
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'AUTH_REQUIRED') {
                     setShowCaptchaPrompt(true);
-                    setLogs(prev => [...prev, '⚠️ ACTION REQUIRED: Auth token needed to proceed.']);
+                    appendLog('⚠️ ACTION REQUIRED: Auth token needed to proceed.');
                 } else if (data.type === 'FINISHED') {
-                    setLogs(prev => [...prev, data.message || '✅ Automation finished.']);
+                    appendLog(data.message || '✅ Automation finished.');
                     eventSourceRef.current?.close();
                     eventSourceRef.current = null;
+                    clearActiveJob();
                     setIsRunning(false);
                     setJobId(null);
                 } else if (data.message) {
-                    setLogs(prev => [...prev, data.message]);
+                    appendLog(data.message);
                 } else {
-                    setLogs(prev => [...prev, JSON.stringify(data)]);
+                    appendLog(JSON.stringify(data));
                 }
             } catch {
-                setLogs(prev => [...prev, event.data]);
+                appendLog(event.data);
             }
         };
 
         eventSource.onerror = () => {
             errorCount++;
             if (errorCount > 10) {
-                setLogs(prev => [...prev, '❌ Connection lost permanently. Automation stopped.']);
+                appendLog('❌ Connection lost permanently. Automation stopped.');
                 eventSourceRef.current?.close();
                 eventSourceRef.current = null;
+                clearActiveJob();
                 setIsRunning(false);
                 setJobId(null);
             } else {
                 setLogs(prev => [...prev, `⚠️ Connection interrupted. Reconnecting… (${errorCount}/10)`]);
             }
         };
+    };
+
+    // connectSSE: used on new job start — pass initialLogs so they are tracked in the logsRef
+    const connectSSE = (id: string, initial: string[] = []) => {
+        connectSSEWithLogs(id, initial);
     };
 
     // ── Shared input classes ──

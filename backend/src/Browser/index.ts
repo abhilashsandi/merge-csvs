@@ -22,13 +22,24 @@ export const getAuthTokenFromBroswer = async (config: any, onLog?: (msg: string,
     };
 
     try {
-        emitLog('Launching browser instance...');
+        const isHeadless = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production' || !process.env.DISPLAY;
+        emitLog(`Launching browser instance (headless=${isHeadless})...`);
         const browser = await puppeteer.launch({
-            headless: false,
-            slowMo: 10,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disk-cache-size=0'],
+            headless: isHeadless,
+            slowMo: isHeadless ? 0 : 10,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-software-rasterizer',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disk-cache-size=0',
+            ],
             executablePath: executablePath(),
-            timeout: 0,
+            timeout: 60000,
         });
         const [page] = await browser.pages();
 
