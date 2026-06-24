@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { TexasScheduler } from './Client';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 app.use(cors());
@@ -17,6 +19,54 @@ interface JobEntry {
     timeoutHandle: NodeJS.Timeout;
 }
 const jobs: Record<string, JobEntry> = {};
+
+const activeJobsPath = path.join(__dirname, '..', 'cache', 'active_jobs.json');
+
+function saveActiveJobs() {
+    try {
+        const jobsToSave: Record<string, any> = {};
+        for (const jobId in jobs) {
+            jobsToSave[jobId] = jobs[jobId].scheduler.config;
+        }
+        if (!fs.existsSync(path.dirname(activeJobsPath))) {
+            fs.mkdirSync(path.dirname(activeJobsPath), { recursive: true });
+        }
+        fs.writeFileSync(activeJobsPath, JSON.stringify(jobsToSave, null, 2));
+    } catch (e) {
+        console.error('Failed to save active jobs', e);
+    }
+}
+
+function startJob(jobId: string, config: any) {
+    const scheduler = new TexasScheduler(config);
+
+    const maxTime = config.appSettings?.maxExecutionTime || 30 * 60 * 1000;
+    const timeoutHandle = setTimeout(() => {
+        if (jobs[jobId]) {
+            jobs[jobId].scheduler.stop();
+            delete jobs[jobId];
+            saveActiveJobs();
+        }
+    }, maxTime);
+
+    jobs[jobId] = { scheduler, timeoutHandle };
+    saveActiveJobs();
+
+    scheduler.run().then(() => {
+        if (jobs[jobId]) {
+            clearTimeout(jobs[jobId].timeoutHandle);
+            delete jobs[jobId];
+            saveActiveJobs();
+        }
+    }).catch(err => {
+        console.error(err);
+        if (jobs[jobId]) {
+            clearTimeout(jobs[jobId].timeoutHandle);
+            delete jobs[jobId];
+            saveActiveJobs();
+        }
+    });
+}
 
 app.post('/api/schedule/start', async (req, res) => {
     const config = req.body;
@@ -34,32 +84,7 @@ app.post('/api/schedule/start', async (req, res) => {
         config.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
     }
     const jobId = uuidv4();
-    const scheduler = new TexasScheduler(config);
-
-    // Timeout after config max time (default 30 mins)
-    const maxTime = config.appSettings?.maxExecutionTime || 30 * 60 * 1000;
-    const timeoutHandle = setTimeout(() => {
-        if (jobs[jobId]) {
-            jobs[jobId].scheduler.stop();
-            delete jobs[jobId];
-        }
-    }, maxTime);
-
-    jobs[jobId] = { scheduler, timeoutHandle };
-
-    // Start asynchronously
-    scheduler.run().then(() => {
-        if (jobs[jobId]) {
-            clearTimeout(jobs[jobId].timeoutHandle);
-            delete jobs[jobId];
-        }
-    }).catch(err => {
-        console.error(err);
-        if (jobs[jobId]) {
-            clearTimeout(jobs[jobId].timeoutHandle);
-            delete jobs[jobId];
-        }
-    });
+    startJob(jobId, config);
 
     res.json({ jobId, status: 'started' });
 });
@@ -70,6 +95,7 @@ app.post('/api/schedule/stop', (req, res) => {
         jobs[jobId].scheduler.stop();
         clearTimeout(jobs[jobId].timeoutHandle);
         delete jobs[jobId];
+        saveActiveJobs();
         res.json({ status: 'stopped' });
     } else {
         res.status(404).json({ error: 'Job not found' });
@@ -105,6 +131,7 @@ app.post('/api/admin/jobs/:jobId/stop', (req, res) => {
         jobs[jobId].scheduler.stop();
         clearTimeout(jobs[jobId].timeoutHandle);
         delete jobs[jobId];
+        saveActiveJobs();
         res.json({ status: 'stopped' });
     } else {
         res.status(404).json({ error: 'Job not found' });
@@ -160,8 +187,23 @@ app.get('/api/schedule/logs/:jobId', (req, res) => {
     });
 });
 
+function restoreActiveJobs() {
+    try {
+        if (fs.existsSync(activeJobsPath)) {
+            const savedJobs = JSON.parse(fs.readFileSync(activeJobsPath, 'utf8'));
+            for (const jobId in savedJobs) {
+                console.log(`Restoring job ${jobId} from cache...`);
+                startJob(jobId, savedJobs[jobId]);
+            }
+        }
+    } catch (e) {
+        console.error('Failed to restore active jobs', e);
+    }
+}
+
 const PORT = process.env.PORT || 3001;
 if (process.env.NODE_ENV !== 'test') {
+    restoreActiveJobs();
     app.listen(PORT, () => {
         console.log(`Backend listening on port ${PORT}`);
     });

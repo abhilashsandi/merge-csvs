@@ -470,7 +470,7 @@ export default function DpsScheduler() {
 
         eventSource.onerror = () => {
             errorCount++;
-            if (errorCount > 10) {
+            if (errorCount > 30) {
                 appendLog('❌ Connection lost permanently. Automation stopped.');
                 eventSourceRef.current?.close();
                 eventSourceRef.current = null;
