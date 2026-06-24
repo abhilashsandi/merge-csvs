@@ -6,7 +6,7 @@ import {
     Play, Square, Terminal, User, Calendar, Mail,
     CreditCard, MapPin, KeyRound, AlertCircle, Send, Settings, Phone,
     Clock, HelpCircle, Activity, Search, Sun, Moon, Lock,
-    CheckCircle, XCircle, Wifi, WifiOff, ChevronDown, Trash2
+    CheckCircle, XCircle, Wifi, WifiOff, ChevronDown, Trash2, Copy
 } from 'lucide-react';
 
 // ─── Service Type Options ────────────────────────────────────────────
@@ -181,6 +181,7 @@ export default function DpsScheduler() {
     const [logs, setLogs] = useState<string[]>([]);
     const [showCaptchaPrompt, setShowCaptchaPrompt] = useState(false);
     const [captchaToken, setCaptchaToken] = useState('');
+    const [isAutoScroll, setIsAutoScroll] = useState(true);
 
     const logsEndRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -248,9 +249,17 @@ export default function DpsScheduler() {
     }, [isDark]);
 
     // ── Auto-scroll logs ──
+    const handleLogsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 20;
+        setIsAutoScroll(isBottom);
+    };
+
     useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
+        if (isAutoScroll) {
+            logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [logs, isAutoScroll]);
 
     // ── Handlers ──
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -886,9 +895,21 @@ export default function DpsScheduler() {
                     <div className="flex items-center justify-between">
                         <BackendStatus baseUrl={baseUrl} isDark={isDark} />
                         {logs.length > 0 && !isRunning && (
-                            <button onClick={() => setLogs([])}
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setLogs([])}
+                                    className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors">
+                                    <Trash2 className="h-3.5 w-3.5" /> Clear logs
+                                </button>
+                                <button onClick={() => navigator.clipboard.writeText(logs.join('\n'))}
+                                    className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors">
+                                    <Copy className="h-3.5 w-3.5" /> Copy
+                                </button>
+                            </div>
+                        )}
+                        {logs.length > 0 && isRunning && (
+                            <button onClick={() => navigator.clipboard.writeText(logs.join('\n'))}
                                 className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors">
-                                <Trash2 className="h-3.5 w-3.5" /> Clear logs
+                                <Copy className="h-3.5 w-3.5" /> Copy
                             </button>
                         )}
                     </div>
@@ -942,7 +963,10 @@ export default function DpsScheduler() {
                                 <div className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`} />
                             </div>
                         </div>
-                        <div className="p-5 flex-grow overflow-y-auto font-mono text-[13px] leading-relaxed">
+                        <div 
+                            className="p-5 flex-grow overflow-y-auto font-mono text-[13px] leading-relaxed"
+                            onScroll={handleLogsScroll}
+                        >
                             {logs.length === 0 ? (
                                 <div className="text-gray-600 dark:text-zinc-600 flex items-center justify-center h-full">
                                     Ready to automate. Configure settings and press Start.

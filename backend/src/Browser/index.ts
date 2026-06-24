@@ -185,7 +185,7 @@ export const getAuthTokenFromBroswer = async (config: any, onLog?: (msg: string,
                 await page.click('.v-card__actions.text-center > button');
                 page.waitForSelector('.v-dialog--active')
                     .then(() => setTimeout(() => tryAgainDialog(page), 5000))
-                    .catch((e) => emitLog(`Failed to wait for selector: ${e}`, 'warn'));
+                    .catch(() => emitLog('No extra captcha challenge detected (expected)', 'dev'));
             });
         });
 
