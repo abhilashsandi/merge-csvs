@@ -7,6 +7,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Keep-alive health check endpoint for UptimeRobot
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), activeJobs: Object.keys(jobs).length });
+});
+
 interface JobEntry {
     scheduler: TexasScheduler;
     timeoutHandle: NodeJS.Timeout;
