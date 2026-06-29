@@ -321,6 +321,7 @@ export class TexasScheduler extends EventEmitter {
                 while (remainingMs > 0 && !this.stopped) {
                     const mins = Math.ceil(remainingMs / 60000);
                     this.logInfo(`Next check in ${mins} minute(s)...`);
+                    this.emit('log', { type: 'countdown', seconds: Math.floor(remainingMs / 1000) });
                     const waitMs = Math.min(60000, remainingMs);
                     try {
                         await sleep.setTimeout(waitMs, undefined, { signal: this.abortController.signal });

@@ -452,11 +452,6 @@ export default function DpsScheduler() {
         eventSourceRef.current = eventSource;
 
         const appendLog = (msg: string) => {
-            const checkMatch = msg.match(/Next check in (\d+)/i);
-            if (checkMatch) {
-                setCountdown(parseInt(checkMatch[1], 10) * 60);
-                // Intentionally NOT returning early so the log is still visible in the history
-            }
             if (msg.includes('Checking Available Location') || msg.includes('FINISHED')) {
                 setCountdown(null);
             }
@@ -501,6 +496,8 @@ export default function DpsScheduler() {
                     clearActiveJob();
                     setIsRunning(false);
                     setJobId(null);
+                } else if (data.type === 'countdown') {
+                    setCountdown(data.seconds);
                 } else if (data.message) {
                     appendLog(data.message);
                 } else {
