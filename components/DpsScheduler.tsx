@@ -478,7 +478,17 @@ export default function DpsScheduler() {
                 setIsRunning(false);
                 setJobId(null);
             } else {
-                setLogs(prev => [...prev, `⚠️ Connection interrupted. Reconnecting… (${errorCount}/10)`]);
+                setLogs(prev => {
+                    const newLogs = [...prev];
+                    if (errorCount === 1) {
+                        newLogs.push(`⚠️ Connection interrupted. Reconnecting… (1/30)`);
+                    } else if (newLogs.length > 0 && newLogs[newLogs.length - 1].includes('Reconnecting…')) {
+                        newLogs[newLogs.length - 1] = `⚠️ Connection interrupted. Reconnecting… (${errorCount}/30)`;
+                    } else {
+                        newLogs.push(`⚠️ Connection interrupted. Reconnecting… (${errorCount}/30)`);
+                    }
+                    return newLogs;
+                });
             }
         };
     };

@@ -315,11 +315,28 @@ export class TexasScheduler extends EventEmitter {
         while (!this.stopped) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
-            try {
-                await sleep.setTimeout(this.config.appSettings.interval, undefined, { signal: this.abortController.signal });
-            } catch (err: any) {
-                if (err.name === 'AbortError') break;
-                throw err;
+            const intervalMs = this.config.appSettings.interval;
+            if (intervalMs >= 60000) {
+                let remainingMs = intervalMs;
+                while (remainingMs > 0 && !this.stopped) {
+                    const mins = Math.ceil(remainingMs / 60000);
+                    this.logInfo(`Next check in ${mins} minute(s)...`);
+                    const waitMs = Math.min(60000, remainingMs);
+                    try {
+                        await sleep.setTimeout(waitMs, undefined, { signal: this.abortController.signal });
+                    } catch (err: any) {
+                        if (err.name === 'AbortError') break;
+                        throw err;
+                    }
+                    remainingMs -= waitMs;
+                }
+            } else {
+                try {
+                    await sleep.setTimeout(intervalMs, undefined, { signal: this.abortController.signal });
+                } catch (err: any) {
+                    if (err.name === 'AbortError') break;
+                    throw err;
+                }
             }
         }
     }
