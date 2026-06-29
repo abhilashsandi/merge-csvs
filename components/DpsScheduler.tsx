@@ -358,7 +358,7 @@ export default function DpsScheduler() {
                 headersTimeout: 50000,
                 maxRetry: formData.maxRetry,
                 captcha: { strategy: 'browser' },
-                maxExecutionTime: 30 * 24 * 60 * 60 * 1000,
+                maxExecutionTime: 0,
                 pushNotifcation: { enabled: false },
             },
         };
