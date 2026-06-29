@@ -43,7 +43,7 @@ function startJob(jobId: string, config: any) {
     const maxTime = config.appSettings?.maxExecutionTime || 30 * 60 * 1000;
     const timeoutHandle = setTimeout(() => {
         if (jobs[jobId]) {
-            jobs[jobId].scheduler.stop();
+            jobs[jobId].scheduler.stop(`Job reached maximum execution time of ${Math.round(maxTime / 60000)} minutes. Stopping automatically.`);
             delete jobs[jobId];
             saveActiveJobs();
         }

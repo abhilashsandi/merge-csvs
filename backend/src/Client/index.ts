@@ -86,12 +86,12 @@ export class TexasScheduler extends EventEmitter {
         if (!existsSync('cache')) mkdirSync('cache');
     }
 
-    public stop() {
+    public stop(reason: string = 'Job stopped manually.') {
         this.stopped = true;
         this.abortController.abort();
         this.queue.pause();
         this.queue.clear();
-        this.logInfo('Job stopped manually.');
+        this.logInfo(reason);
     }
 
     public submitManualToken(token: string) {
@@ -368,7 +368,7 @@ export class TexasScheduler extends EventEmitter {
             if (!this.queue.isPaused) this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
                 this.logWarn('cancelIfExist is disabled! Please cancel existing appointment manually!');
-                this.stop();
+                this.stop('Job stopped because a slot was found but cancelIfExist is disabled.');
                 return Promise.resolve(true);
             }
             try {
@@ -521,13 +521,14 @@ export class TexasScheduler extends EventEmitter {
             this.logInfo(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             this.logInfo(`Visiting this link to print your booking:`);
             this.logInfo(appointmentURL);
+            
             if (this.config.appSettings.pushNotifcation?.enabled) {
                 this.logInfo('Sending notification...');
                 await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
                     this.logError('Failed to send notification', error);
                 });
             }
-            this.stop();
+            this.stop('Job stopped because a slot was booked successfully! 🎉');
             return;
         } else {
             if (this.queue.isPaused) this.queue.start();
