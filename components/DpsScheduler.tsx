@@ -202,7 +202,10 @@ export default function DpsScheduler() {
         } catch { /* ignore */ }
     };
     const clearActiveJob = () => {
-        try { localStorage.removeItem('dpsActiveJob'); } catch { /* ignore */ }
+        try { 
+            localStorage.removeItem('dpsActiveJob'); 
+            localStorage.removeItem('dpsActivePayload');
+        } catch { /* ignore */ }
     };
 
     // ── Init ──
@@ -385,6 +388,7 @@ export default function DpsScheduler() {
             const data = await res.json();
             if (data.jobId) {
                 setJobId(data.jobId);
+                try { localStorage.setItem('dpsActivePayload', JSON.stringify(payload)); } catch { /* ignore */ }
                 const initialLogs = ['Initializing scheduler…', `Scheduler started. Job ID: ${data.jobId}`];
                 setLogs(initialLogs);
                 saveActiveJob(data.jobId, initialLogs);
@@ -469,6 +473,28 @@ export default function DpsScheduler() {
                     setShowCaptchaPrompt(true);
                     appendLog('⚠️ ACTION REQUIRED: Auth token needed to proceed.');
                 } else if (data.type === 'FINISHED') {
+                    if (data.message === 'Job has ended or does not exist.') {
+                        try {
+                            const savedPayload = localStorage.getItem('dpsActivePayload');
+                            if (savedPayload) {
+                                appendLog('⚠️ Server restarted. Restoring background job...');
+                                fetch(`${baseUrl}/api/schedule/restore`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ jobId: id, config: JSON.parse(savedPayload) }),
+                                }).then(() => {
+                                    connectSSEWithLogs(id, logsRef.current);
+                                }).catch(() => {
+                                    appendLog('❌ Failed to restore job after server restart.');
+                                    eventSourceRef.current?.close();
+                                    clearActiveJob();
+                                    setIsRunning(false);
+                                    setJobId(null);
+                                });
+                                return;
+                            }
+                        } catch { /* ignore */ }
+                    }
                     appendLog(data.message || '✅ Automation finished.');
                     eventSourceRef.current?.close();
                     eventSourceRef.current = null;

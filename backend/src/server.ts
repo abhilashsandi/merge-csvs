@@ -68,6 +68,24 @@ function startJob(jobId: string, config: any) {
     });
 }
 
+app.post('/api/schedule/restore', async (req, res) => {
+    const { jobId, config } = req.body;
+    if (!jobId || !config || !config.personalInfo) {
+        return res.status(400).json({ error: 'Invalid configuration' });
+    }
+    if (!jobs[jobId]) {
+        let startDate = require('dayjs')(config.location?.daysAround?.startDate);
+        if (!config.location?.daysAround?.startDate || !startDate.isValid() || startDate.isBefore(require('dayjs')().startOf('day'))) {
+            startDate = require('dayjs')();
+        }
+        if (config.location && config.location.daysAround) {
+            config.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
+        }
+        startJob(jobId, config);
+    }
+    res.json({ jobId, status: 'restored' });
+});
+
 app.post('/api/schedule/start', async (req, res) => {
     const config = req.body;
     
