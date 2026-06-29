@@ -157,7 +157,8 @@ app.get('/api/schedule/logs/:jobId', (req, res) => {
     const job = jobs[jobId];
 
     if (!job) {
-        res.status(404).end();
+        res.write(`data: ${JSON.stringify({ type: 'FINISHED', message: 'Job has ended or does not exist.' })}\n\n`);
+        res.end();
         return;
     }
 

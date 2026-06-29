@@ -92,6 +92,7 @@ export class TexasScheduler extends EventEmitter {
         this.queue.pause();
         this.queue.clear();
         this.logInfo(reason);
+        this.emit('FINISHED');
     }
 
     public submitManualToken(token: string) {
