@@ -319,8 +319,9 @@ export class TexasScheduler extends EventEmitter {
             if (intervalMs >= 60000) {
                 let remainingMs = intervalMs;
                 while (remainingMs > 0 && !this.stopped) {
-                    const mins = Math.ceil(remainingMs / 60000);
-                    this.logInfo(`Next check in ${mins} minute(s)...`);
+                    const mins = Math.floor(remainingMs / 60000);
+                    const secs = Math.floor((remainingMs % 60000) / 1000);
+                    this.logInfo(`Next check in ${mins} minute(s) ${secs} second(s)...`);
                     this.emit('log', { type: 'countdown', seconds: Math.floor(remainingMs / 1000) });
                     const waitMs = Math.min(60000, remainingMs);
                     try {
