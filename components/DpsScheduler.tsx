@@ -182,6 +182,7 @@ export default function DpsScheduler() {
     const [showCaptchaPrompt, setShowCaptchaPrompt] = useState(false);
     const [captchaToken, setCaptchaToken] = useState('');
     const [isAutoScroll, setIsAutoScroll] = useState(true);
+    const [countdown, setCountdown] = useState<number | null>(null);
 
     const logsEndRef = useRef<HTMLDivElement>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -260,6 +261,14 @@ export default function DpsScheduler() {
             logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     }, [logs, isAutoScroll]);
+
+    // ── Countdown Timer ──
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCountdown(c => (c !== null && c > 0 ? c - 1 : null));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // ── Handlers ──
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -439,6 +448,14 @@ export default function DpsScheduler() {
         eventSourceRef.current = eventSource;
 
         const appendLog = (msg: string) => {
+            const checkMatch = msg.match(/Next check in (\d+) minute\(s\)\.\.\./);
+            if (checkMatch) {
+                setCountdown(parseInt(checkMatch[1], 10) * 60);
+                return;
+            }
+            if (msg.includes('Checking Available Location') || msg.includes('FINISHED')) {
+                setCountdown(null);
+            }
             logsRef.current = [...logsRef.current, msg];
             setLogs([...logsRef.current]);
             saveActiveJob(id, logsRef.current);
@@ -967,10 +984,17 @@ export default function DpsScheduler() {
                                 <Terminal className="h-4 w-4 text-gray-500" />
                                 <span className="text-xs font-mono text-gray-400 uppercase tracking-wider">Operation Logs</span>
                             </div>
-                            <div className="flex space-x-2">
-                                <div className="w-2.5 h-2.5 rounded-full bg-gray-700" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-gray-700" />
-                                <div className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`} />
+                            <div className="flex items-center space-x-3">
+                                {countdown !== null && (
+                                    <span className="text-xs text-emerald-500 font-mono animate-pulse">
+                                        Next check: {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                                    </span>
+                                )}
+                                <div className="flex space-x-2">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-gray-700" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-gray-700" />
+                                    <div className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`} />
+                                </div>
                             </div>
                         </div>
                         <div 
