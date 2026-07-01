@@ -61,10 +61,7 @@ const getAuthTokenFromBroswer = async (config, onLog) => {
     };
     try {
         const isHeadless = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production' || !process.env.DISPLAY;
-        // Use PUPPETEER_EXECUTABLE_PATH if set (e.g. system Chrome on Render),
-        // otherwise fall back to puppeteer's bundled Chrome
-        const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || (0, puppeteer_1.executablePath)();
-        emitLog(`Launching browser instance (headless=${isHeadless}, chrome=${chromePath})...`);
+        emitLog(`Launching browser instance (headless=${isHeadless})...`);
         const browser = await puppeteer_extra_1.default.launch({
             headless: isHeadless,
             slowMo: isHeadless ? 0 : 10,
@@ -79,7 +76,7 @@ const getAuthTokenFromBroswer = async (config, onLog) => {
                 '--single-process',
                 '--disk-cache-size=0',
             ],
-            executablePath: chromePath,
+            executablePath: (0, puppeteer_1.executablePath)(),
             timeout: 60000,
         });
         const [page] = await browser.pages();
@@ -195,9 +192,16 @@ const getAuthTokenFromBroswer = async (config, onLog) => {
                 emitLog(`Intercepted: ${event.response.url} (Status: ${event.response.status})`, 'dev');
                 if (event.response.url.includes('/api/v1/account/auth') && event.response.status === 200) {
                     emitLog('Auth endpoint hit! Extracting token...');
-                    const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
-                    clearTimeout(timeout);
-                    resolve(response.body);
+                    try {
+                        const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
+                        if (response.body) {
+                            clearTimeout(timeout);
+                            resolve(response.body);
+                        }
+                    }
+                    catch (e) {
+                        emitLog(`Skipping OPTIONS request body: ${e}`, 'dev');
+                    }
                 }
             });
             emitLog('Clicking Login button...');
@@ -205,7 +209,7 @@ const getAuthTokenFromBroswer = async (config, onLog) => {
                 await page.click('.v-card__actions.text-center > button');
                 page.waitForSelector('.v-dialog--active')
                     .then(() => setTimeout(() => tryAgainDialog(page), 5000))
-                    .catch((e) => emitLog(`Failed to wait for selector: ${e}`, 'warn'));
+                    .catch(() => emitLog('No extra captcha challenge detected (expected)', 'dev'));
             });
         });
         const tryAgainDialog = async (page, retryTime = 0) => {

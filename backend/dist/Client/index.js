@@ -107,55 +107,76 @@ class TexasScheduler extends events_1.EventEmitter {
         if (!(0, fs_1.existsSync)('cache'))
             (0, fs_1.mkdirSync)('cache');
     }
-    stop() {
+    stop(reason = 'Job stopped manually.') {
         this.stopped = true;
         this.abortController.abort();
         this.queue.pause();
         this.queue.clear();
-        this.logInfo('Job stopped manually.');
+        this.logInfo(reason);
+        this.emit('FINISHED');
     }
     submitManualToken(token) {
         this.authToken = token;
         this.emit('manual_token_received');
     }
     async run() {
-        try {
-            if (this.config.appSettings?.authToken) {
-                this.logInfo('Using provided Auth Token from config.');
-                this.authToken = this.config.appSettings.authToken;
+        let runRetries = 0;
+        const maxRetries = this.config.appSettings?.maxRetry || 5;
+        while (runRetries < maxRetries && !this.stopped) {
+            try {
+                if (this.config.appSettings?.authToken) {
+                    this.logInfo('Using provided Auth Token from config.');
+                    this.authToken = this.config.appSettings.authToken;
+                }
+                else if ((0, fs_1.existsSync)('././cache/token.tmp')) {
+                    this.logInfo('Getting auth token from cache...');
+                    this.authToken = (0, fs_1.readFileSync)('././cache/token.tmp', 'utf-8');
+                }
+                else
+                    await this.getAuthToken();
+                if (this.responseId === null)
+                    await this.getResponseId();
+                this.existBooking = await this.checkExistBooking();
+                const { exist, response } = this.existBooking;
+                if (exist) {
+                    this.logWarn(`You have an existing booking at ${response[0].SiteName} ${(0, dayjs_1.default)(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
+                    if (!this.config.appSettings.cancelIfExist) {
+                        this.logWarn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+                    }
+                    else {
+                        this.logWarn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                    }
+                }
+                await this.requestAvailableLocation();
+                // If we reached here, startup was fully successful. Reset consecutive run retries.
+                runRetries = 0;
+                await this.getLocationDatesAll();
+                this.emit('FINISHED');
+                break; // success, break the retry loop
             }
-            else if ((0, fs_1.existsSync)('././cache/token.tmp')) {
-                this.logInfo('Getting auth token from cache...');
-                this.authToken = (0, fs_1.readFileSync)('././cache/token.tmp', 'utf-8');
-            }
-            else
-                await this.getAuthToken();
-            if (this.responseId === null)
-                await this.getResponseId();
-            this.existBooking = await this.checkExistBooking();
-            const { exist, response } = this.existBooking;
-            if (exist) {
-                this.logWarn(`You have an existing booking at ${response[0].SiteName} ${(0, dayjs_1.default)(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
-                if (!this.config.appSettings.cancelIfExist) {
-                    this.logWarn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+            catch (err) {
+                if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
+                    this.logInfo('Scheduler aborted successfully.');
+                    this.emit('FINISHED');
+                    break;
                 }
                 else {
-                    this.logWarn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+                    this.logError(`Fatal Error: ${err.message || err}`);
+                    runRetries++;
+                    if (runRetries >= maxRetries) {
+                        this.logError(`Max consecutive retries reached (${maxRetries}). Stopping scheduler.`);
+                        this.emit('FINISHED');
+                        throw err;
+                    }
+                    this.logInfo(`Retrying main loop in 10s... (Retry ${runRetries}/${maxRetries})`);
+                    try {
+                        await promises_1.default.setTimeout(10000, undefined, { signal: this.abortController.signal });
+                    }
+                    catch {
+                        break;
+                    }
                 }
             }
-            await this.requestAvailableLocation();
-            await this.getLocationDatesAll();
-            this.emit('FINISHED');
-        }
-        catch (err) {
-            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'Aborted' || err.name === 'CanceledError') {
-                this.logInfo('Scheduler aborted successfully.');
-            }
-            else {
-                this.logError(`Fatal Error: ${err.message || err}`);
-            }
-            this.emit('FINISHED');
-            throw err;
         }
     }
     async checkExistBooking() {
@@ -267,8 +288,7 @@ class TexasScheduler extends events_1.EventEmitter {
         const response = await this.getAllLocation();
         if (response.length === 0) {
             this.logError('No Available location found! You can try add more zipcodes or set city name!');
-            this.stop();
-            return;
+            throw new Error('No Available location found');
         }
         if (this.config.location.pickDPSLocation) {
             if ((0, fs_1.existsSync)('././cache/location.json')) {
@@ -294,8 +314,7 @@ class TexasScheduler extends events_1.EventEmitter {
                 return;
             if (!userResponse.location || userResponse.location.length === 0) {
                 this.logError('You must choose at least one location!');
-                this.stop();
-                return;
+                throw new Error('You must choose at least one location');
             }
             this.availableLocation = userResponse.location;
             (0, fs_1.writeFileSync)('././cache/location.json', JSON.stringify(userResponse.location));
@@ -304,8 +323,7 @@ class TexasScheduler extends events_1.EventEmitter {
         const filteredResponse = response.filter((location) => location.Distance < this.config.location.miles);
         if (filteredResponse.length === 0) {
             this.logError(`No Available location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
-            this.stop();
-            return;
+            throw new Error('No locations found within specified distance');
         }
         this.logInfo(`Found ${filteredResponse.length} Available location that match your criteria`);
         this.logInfo(`${filteredResponse.map(el => el.Name).join(', ')}`);
@@ -320,13 +338,35 @@ class TexasScheduler extends events_1.EventEmitter {
         while (!this.stopped) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
-            try {
-                await promises_1.default.setTimeout(this.config.appSettings.interval, undefined, { signal: this.abortController.signal });
+            const intervalMs = this.config.appSettings.interval;
+            if (intervalMs >= 60000) {
+                let remainingMs = intervalMs;
+                while (remainingMs > 0 && !this.stopped) {
+                    const mins = Math.floor(remainingMs / 60000);
+                    const secs = Math.floor((remainingMs % 60000) / 1000);
+                    this.logInfo(`Next check in ${mins} minute(s) ${secs} second(s)...`);
+                    this.emit('log', { type: 'countdown', seconds: Math.floor(remainingMs / 1000) });
+                    const waitMs = Math.min(60000, remainingMs);
+                    try {
+                        await promises_1.default.setTimeout(waitMs, undefined, { signal: this.abortController.signal });
+                    }
+                    catch (err) {
+                        if (err.name === 'AbortError')
+                            break;
+                        throw err;
+                    }
+                    remainingMs -= waitMs;
+                }
             }
-            catch (err) {
-                if (err.name === 'AbortError')
-                    break;
-                throw err;
+            else {
+                try {
+                    await promises_1.default.setTimeout(intervalMs, undefined, { signal: this.abortController.signal });
+                }
+                catch (err) {
+                    if (err.name === 'AbortError')
+                        break;
+                    throw err;
+                }
             }
         }
     }
@@ -371,7 +411,7 @@ class TexasScheduler extends events_1.EventEmitter {
                 this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
                 this.logWarn('cancelIfExist is disabled! Please cancel existing appointment manually!');
-                this.stop();
+                this.stop('Job stopped because a slot was found but cancelIfExist is disabled.');
                 return Promise.resolve(true);
             }
             try {
@@ -406,15 +446,29 @@ class TexasScheduler extends events_1.EventEmitter {
         };
         if (this.authToken)
             headers['Authorization'] = this.authToken;
-        const response = await this.requestClient.request({
-            method,
-            url: path,
-            headers,
-            timeout: this.config.appSettings.headersTimeout,
-            data: method === 'POST' ? body : undefined, // Include body only for POST requests
-            validateStatus: () => true,
-            signal: this.abortController.signal,
-        });
+        let response;
+        try {
+            response = await this.requestClient.request({
+                method,
+                url: path,
+                headers,
+                timeout: this.config.appSettings.headersTimeout,
+                data: method === 'POST' ? body : undefined, // Include body only for POST requests
+                validateStatus: () => true,
+                signal: this.abortController.signal,
+            });
+        }
+        catch (err) {
+            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED' || err.message === 'canceled')
+                throw err;
+            if (retryTime < (this.config.appSettings.maxRetry || 5)) {
+                this.logWarn(`Network request failed: ${err.message}. Retrying (${retryTime + 1}/${this.config.appSettings.maxRetry || 5})...`);
+                await promises_1.default.setTimeout(5000, undefined, { signal: this.abortController.signal });
+                return this.requestApi(path, method, body, retryTime + 1);
+            }
+            this.logError(`Network request failed after ${this.config.appSettings.maxRetry || 5} retries: ${err.message}`);
+            throw err;
+        }
         if (response.status !== 200) {
             this.logWarn(`Got ${response.status} status code`);
             this.logInfo(`Endpoint: ${path}`);
@@ -434,12 +488,11 @@ class TexasScheduler extends events_1.EventEmitter {
                 await promises_1.default.setTimeout(10000, undefined, { signal: this.abortController.signal });
                 return this.requestApi(path, method, body, retryTime + 1);
             }
-            if (retryTime < this.config.appSettings.maxRetry) {
-                this.logInfo(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
+            if (retryTime < (this.config.appSettings.maxRetry || 5)) {
+                this.logInfo(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry || 5})`);
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             this.logError(`Got ${response.status} status code, retrying failed!`);
-            this.stop();
             throw new Error(`Got ${response.status} status code, retrying failed!`);
         }
         return response;
@@ -514,7 +567,7 @@ class TexasScheduler extends events_1.EventEmitter {
                     this.logError('Failed to send notification', error);
                 });
             }
-            this.stop();
+            this.stop('Job stopped because a slot was booked successfully! 🎉');
             return;
         }
         else {

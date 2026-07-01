@@ -13,7 +13,7 @@ dayjs_1.default.extend(utc_1.default);
 dayjs_1.default.extend(timezone_1.default);
 dayjs_1.default.tz.setDefault('America/Chicago');
 exports.logEmitter = new events_1.EventEmitter();
-const timeNow = () => (0, dayjs_1.default)().format('MM/DD/YYYY h:mm:ss');
+const timeNow = () => dayjs_1.default.tz().format('MM/DD/YYYY h:mm:ss A');
 const emitLog = (type, message) => {
     const formattedMessage = `[${timeNow()}] ${message}`;
     exports.logEmitter.emit('log', { type, message: formattedMessage });
