@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Play, Square, Terminal, User, Calendar, Mail,
     CreditCard, MapPin, KeyRound, AlertCircle, Send, Settings, Phone,
-    Clock, HelpCircle, Activity, Search, Sun, Moon, Lock,
+    Clock, HelpCircle, Activity, Search, Sun, Moon, Lock, IdCard,
     CheckCircle, XCircle, Wifi, WifiOff, ChevronDown, Trash2, Copy
 } from 'lucide-react';
 
@@ -153,6 +153,7 @@ export default function DpsScheduler() {
         dob: '',
         email: '',
         last4ssn: '',
+        cardNumber: '',
         phoneNumber: '',
         typeId: 81,
         cityName: '',
@@ -343,6 +344,7 @@ export default function DpsScheduler() {
                 dob: formData.dob,
                 email: formData.email,
                 lastFourSSN: formData.last4ssn,
+                cardNumber: formData.cardNumber || undefined,
                 phoneNumber: formData.phoneNumber || undefined,
                 typeId: formData.typeId || undefined,
             },
@@ -643,7 +645,7 @@ export default function DpsScheduler() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className={labelCls}>Date of Birth</label>
                                             <div className="relative">
@@ -673,6 +675,16 @@ export default function DpsScheduler() {
                                                     className={inputCls('last4ssn')} placeholder="••••" disabled={isRunning} />
                                             </div>
                                             {fieldErrors.last4ssn && <p className="text-xs text-red-500 mt-1">{fieldErrors.last4ssn}</p>}
+                                        </div>
+                                        <div>
+                                            <label className={labelCls}>Texas Card No. <span className="normal-case font-normal">(optional)</span></label>
+                                            <div className="relative">
+                                                <div className={iconCls}><IdCard className={`h-4 w-4 ${iconColor}`} /></div>
+                                                <input type="text" name="cardNumber" value={formData.cardNumber}
+                                                    onChange={handleInputChange} maxLength={8} inputMode="numeric"
+                                                    className={inputCls()} placeholder="DL, ID, EIC" disabled={isRunning} />
+                                            </div>
+                                            {fieldErrors.cardNumber && <p className="text-xs text-red-500 mt-1">{fieldErrors.cardNumber}</p>}
                                         </div>
                                     </div>
 
