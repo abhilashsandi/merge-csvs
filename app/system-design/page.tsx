@@ -99,14 +99,14 @@ export default function SystemDesignMasterclass() {
       {/* Theme Toggle */}
       <button 
         onClick={toggleTheme} 
-        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xl hover:scale-110 transition-transform"
+        className="fixed top-3 right-3 sm:top-6 sm:right-6 z-50 p-2 sm:p-3 rounded-full scale-90 sm:scale-100 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xl hover:scale-110 transition-transform"
         title="Toggle Light/Dark Mode"
       >
         {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
       </button>
 
       {/* Header */}
-      <header className="pt-20 pb-12 px-6 text-center max-w-4xl mx-auto">
+      <header className="pt-16 sm:pt-20 pb-8 sm:pb-12 px-4 sm:px-6 text-center max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -116,7 +116,7 @@ export default function SystemDesignMasterclass() {
             <BookOpen className="w-4 h-4" />
             Complete Study Guide
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
             System Design <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Masterclass</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl mx-auto">
@@ -131,13 +131,15 @@ export default function SystemDesignMasterclass() {
           
           {/* Left Sidebar (Sticky Navigation) */}
           <div className="lg:w-1/4 shrink-0">
-            <div className="sticky top-8 space-y-3">
+            <div className="sticky top-2 z-40 bg-slate-50/95 dark:bg-[#0a0f1c]/95 backdrop-blur-xl pb-4 lg:bg-transparent lg:dark:bg-transparent lg:pb-0 pt-2 lg:pt-8 -mx-4 px-4 lg:mx-0 lg:px-0 rounded-b-xl lg:rounded-none shadow-sm lg:shadow-none">
+              <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-500 mb-3 lg:mb-6 ml-2 hidden lg:block">Modules</h3>
+              <div className="flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-visible snap-x pb-2 slick-scrollbar">
               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-6 ml-2">Modules</h3>
               {modules.map((mod, idx) => (
                 <button
                   key={mod.id}
                   onClick={() => setActiveModule(idx)}
-                  className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-4 group ${
+                  className={`min-w-[260px] lg:min-w-0 w-full text-left p-3 lg:p-4 rounded-2xl transition-all flex items-center gap-3 lg:gap-4 group snap-center ${
                     activeModule === idx 
                       ? `bg-gradient-to-r ${mod.gradient} border ${mod.border} shadow-lg shadow-black/20 transform scale-[1.02]` 
                       : 'hover:bg-slate-200 dark:hover:bg-slate-800/50 border border-transparent'
@@ -157,6 +159,7 @@ export default function SystemDesignMasterclass() {
                 {progress.completedModules.includes(mod.id) && <CheckCircle2 className="w-5 h-5 text-green-500 ml-auto" />}
                 </button>
               ))}
+              </div>
             </div>
           </div>
 
@@ -169,14 +172,14 @@ export default function SystemDesignMasterclass() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl"
+                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800/80 rounded-2xl lg:rounded-3xl overflow-hidden shadow-xl lg:shadow-2xl"
               >
                 {/* Content Header */}
-                <div className={`px-8 md:px-12 py-12 bg-gradient-to-br ${modules[activeModule].gradient} border-b ${modules[activeModule].border}`}>
+                <div className={`px-4 sm:px-8 md:px-12 py-6 sm:py-12 bg-gradient-to-br ${modules[activeModule].gradient} border-b ${modules[activeModule].border}`}>
                   <span className="text-slate-600 dark:text-white/70 font-medium tracking-wider uppercase text-sm mb-4 block">
                     Module {activeModule + 1}
                   </span>
-                  <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-6">
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-6">
                     {modules[activeModule].title}
                   </h2>
                   <p className="text-xl text-slate-700 dark:text-white/80 max-w-3xl leading-relaxed">
@@ -185,7 +188,7 @@ export default function SystemDesignMasterclass() {
                 </div>
                 
                 {/* Scrollable Content Body - Now rendering the massive separate components */}
-                <div className="p-8 md:p-12">
+                <div className="p-2 sm:p-6 md:p-12">
                   <div className="flex items-start">
                     <div className="flex-1 min-w-0">
                       {React.createElement(modules[activeModule].Component)}

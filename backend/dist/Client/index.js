@@ -605,29 +605,56 @@ class TexasScheduler extends events_1.EventEmitter {
             this.authToken = response.data.token;
         }
         else if (this.config.appSettings.captcha.strategy === 'browser') {
-            try {
-                const response = await (0, Browser_1.getAuthTokenFromBroswer)(this.config, (msg, type) => {
-                    this.emit('log', { type: type || 'info', message: `[${(0, dayjs_1.default)().format('MM/DD/YYYY h:mm:ss')}] ${msg}` });
-                });
-                const parsed = JSON.parse(response);
-                this.authToken = parsed.data.token;
-            }
-            catch (err) {
-                this.logError('Browser auth failed. Waiting for manual token...');
-                this.emit('AUTH_REQUIRED');
-                await new Promise((resolve, reject) => {
-                    const onAbort = () => {
-                        this.removeListener('manual_token_received', resolve);
-                        reject(new Error('Aborted'));
-                    };
-                    if (this.abortController.signal.aborted)
-                        return onAbort();
-                    this.abortController.signal.addEventListener('abort', onAbort);
-                    this.once('manual_token_received', () => {
-                        this.abortController.signal.removeEventListener('abort', onAbort);
-                        resolve();
+            let attempt = 0;
+            while (true) {
+                try {
+                    const response = await (0, Browser_1.getAuthTokenFromBroswer)(this.config, (msg, type) => {
+                        this.emit('log', { type: type || 'info', message: `[${(0, dayjs_1.default)().format('MM/DD/YYYY h:mm:ss')}] ${msg}` });
                     });
-                });
+                    const parsed = JSON.parse(response);
+                    this.authToken = parsed.data.token;
+                    break;
+                }
+                catch (err) {
+                    const delayMinutes = Math.min(15 * Math.pow(2, attempt), 60);
+                    const delayMs = delayMinutes * 60 * 1000;
+                    this.logError(`Browser auth failed. Waiting up to ${delayMinutes} mins for manual token...`);
+                    this.emit('AUTH_REQUIRED');
+                    try {
+                        await new Promise((resolve, reject) => {
+                            let timeoutId;
+                            const onAbort = () => {
+                                clearTimeout(timeoutId);
+                                this.removeListener('manual_token_received', onToken);
+                                reject(new Error('Aborted'));
+                            };
+                            const onToken = () => {
+                                clearTimeout(timeoutId);
+                                this.abortController.signal.removeEventListener('abort', onAbort);
+                                resolve();
+                            };
+                            const onTimeout = () => {
+                                this.removeListener('manual_token_received', onToken);
+                                this.abortController.signal.removeEventListener('abort', onAbort);
+                                reject(new Error('Manual_Timeout'));
+                            };
+                            if (this.abortController.signal.aborted)
+                                return onAbort();
+                            this.abortController.signal.addEventListener('abort', onAbort);
+                            this.once('manual_token_received', onToken);
+                            timeoutId = setTimeout(onTimeout, delayMs);
+                        });
+                        break; // Token received manually
+                    }
+                    catch (e) {
+                        if (e.message === 'Manual_Timeout') {
+                            this.logInfo(`No manual token entered in ${delayMinutes} mins. Retrying browser auth...`);
+                            attempt++;
+                            continue;
+                        }
+                        throw e; // Aborted
+                    }
+                }
             }
         }
         else if (this.config.appSettings.captcha.strategy === 'manual') {

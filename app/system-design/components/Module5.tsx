@@ -206,7 +206,8 @@ function ComputeSpectrumSVG() {
       <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
         Compute Spectrum: Control ↔ Convenience
       </h4>
-      <svg viewBox="0 0 800 200" className="w-full" xmlns="http://www.w3.org/2000/svg">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 200" className="w-full min-w-[800px] lg:min-w-0" xmlns="http://www.w3.org/2000/svg">
         {/* gradient bar */}
         <defs>
           <linearGradient id="spectrumGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -275,6 +276,7 @@ function ComputeSpectrumSVG() {
           </g>
         ))}
       </svg>
+</div>
     </motion.div>
   );
 }
@@ -293,7 +295,8 @@ function DatabaseDecisionTreeSVG() {
       <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
         Which AWS Database Should I Use?
       </h4>
-      <svg viewBox="0 0 900 520" className="w-full" xmlns="http://www.w3.org/2000/svg">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 900 520" className="w-full min-w-[800px] lg:min-w-0" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -422,6 +425,7 @@ function DatabaseDecisionTreeSVG() {
           Columnar, petabyte-scale
         </text>
       </svg>
+</div>
     </motion.div>
   );
 }
@@ -440,7 +444,8 @@ function VPCArchitectureSVG() {
       <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
         VPC Architecture: Public &amp; Private Subnets
       </h4>
-      <svg viewBox="0 0 900 550" className="w-full" xmlns="http://www.w3.org/2000/svg">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 900 550" className="w-full min-w-[800px] lg:min-w-0" xmlns="http://www.w3.org/2000/svg">
         {/* Internet */}
         <motion.g
           initial={{ opacity: 0, y: -20 }}
@@ -571,6 +576,7 @@ function VPCArchitectureSVG() {
           NACLs (Stateless, Subnet-level)
         </text>
       </svg>
+</div>
     </motion.div>
   );
 }
@@ -608,7 +614,8 @@ function ReferenceArchitectureSVG() {
       <h4 className="text-sm font-semibold text-[#FF9900] uppercase tracking-wider mb-4">
         ⭐ Reference Architecture — Production-Ready AWS
       </h4>
-      <svg viewBox="0 0 850 490" className="w-full" xmlns="http://www.w3.org/2000/svg">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 850 490" className="w-full min-w-[800px] lg:min-w-0" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="#FF9900" opacity="0.6" />
@@ -713,6 +720,7 @@ function ReferenceArchitectureSVG() {
           );
         })}
       </svg>
+</div>
     </motion.div>
   );
 }

@@ -40,7 +40,7 @@ function saveActiveJobs() {
 function startJob(jobId: string, config: any) {
     const scheduler = new TexasScheduler(config);
 
-    const maxTime = config.appSettings?.maxExecutionTime || 0;
+    const maxTime = process.env.NODE_ENV === 'test' ? (config.appSettings?.maxExecutionTime || 0) : 0;
     const timeoutHandle = maxTime > 0 ? setTimeout(() => {
         if (jobs[jobId]) {
             jobs[jobId].scheduler.stop(`Job reached maximum execution time of ${Math.round(maxTime / 60000)} minutes. Stopping automatically.`);

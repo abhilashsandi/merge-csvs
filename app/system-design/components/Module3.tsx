@@ -159,7 +159,8 @@ const SCSDiagram = () => {
       <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
         Self-Contained Systems Architecture
       </h4>
-      <svg viewBox="0 0 680 320" className="w-full max-w-2xl mx-auto">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 680 320" className="w-full max-w-2xl mx-auto min-w-[680px] lg:min-w-0">
         {/* Browser bar */}
         <rect x="180" y="10" width="320" height="30" rx="6" fill="#1e293b" stroke="#475569" strokeWidth="1" />
         <text x="340" y="30" textAnchor="middle" fill="#94a3b8" fontSize="11">Browser</text>
@@ -264,6 +265,7 @@ const SCSDiagram = () => {
           Each SCS = independent deployment, own DB, own UI
         </text>
       </svg>
+</div>
     </motion.div>
   );
 };
@@ -280,7 +282,8 @@ const ESIDiagram = () => (
     <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
       Edge Side Includes — Request Assembly Flow
     </h4>
-    <svg viewBox="0 0 700 260" className="w-full max-w-2xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 260" className="w-full max-w-2xl mx-auto min-w-[700px] lg:min-w-0">
       {/* Client */}
       <motion.rect x="20" y="90" width="100" height="50" rx="8" fill="#1e293b" stroke="#818cf8" strokeWidth="1.5"
         initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} />
@@ -344,6 +347,7 @@ const ESIDiagram = () => (
         </marker>
       </defs>
     </svg>
+</div>
   </motion.div>
 );
 
@@ -374,7 +378,8 @@ const CAPTriangle = () => {
       <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
         CAP Theorem — Pick Two (in the presence of partitions)
       </h4>
-      <svg viewBox="0 0 600 310" className="w-full max-w-xl mx-auto">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 310" className="w-full max-w-xl mx-auto min-w-[600px] lg:min-w-0">
         {/* Triangle edges */}
         <motion.polygon
           points="300,50 90,260 510,260"
@@ -456,6 +461,7 @@ const CAPTriangle = () => {
           </motion.text>
         ))}
       </svg>
+</div>
     </motion.div>
   );
 };
@@ -472,7 +478,8 @@ const APIGatewayDiagram = () => (
     <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
       API Gateway — Single Entry Point Pattern
     </h4>
-    <svg viewBox="0 0 720 300" className="w-full max-w-2xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 720 300" className="w-full max-w-2xl mx-auto min-w-[720px] lg:min-w-0">
       {/* Clients */}
       {['Web App', 'Mobile', 'Partner'].map((c, i) => (
         <g key={i}>
@@ -576,6 +583,7 @@ const APIGatewayDiagram = () => (
         <text x="665" y="168" textAnchor="middle" fill="#64748b" fontSize="8">Gateway per client</text>
       </motion.g>
     </svg>
+</div>
   </motion.div>
 );
 
@@ -599,7 +607,8 @@ const ServiceDiscoveryDiagram = () => {
       <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
         Service Discovery — Registration &amp; Lookup (Animated)
       </h4>
-      <svg viewBox="0 0 600 260" className="w-full max-w-xl mx-auto">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 260" className="w-full max-w-xl mx-auto min-w-[600px] lg:min-w-0">
         {/* Registry */}
         <rect x="220" y="20" width="160" height="70" rx="10" fill="#0f172a" stroke="#c084fc" strokeWidth="2" />
         <text x="300" y="50" textAnchor="middle" fill="#c084fc" fontSize="13" fontWeight="bold">Service Registry</text>
@@ -663,6 +672,7 @@ const ServiceDiscoveryDiagram = () => {
           Client-side: caller queries registry → gets IP → calls directly | Server-side: load balancer queries registry
         </text>
       </svg>
+</div>
     </motion.div>
   );
 };
@@ -679,7 +689,8 @@ const SagaDiagram = () => (
     <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
       Saga Pattern — Choreography vs Orchestration
     </h4>
-    <svg viewBox="0 0 700 340" className="w-full max-w-2xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 340" className="w-full max-w-2xl mx-auto min-w-[700px] lg:min-w-0">
       {/* Choreography (top) */}
       <text x="350" y="20" textAnchor="middle" fill="#818cf8" fontSize="12" fontWeight="bold">
         Choreography (Event-Driven)
@@ -791,6 +802,7 @@ const SagaDiagram = () => (
         </marker>
       </defs>
     </svg>
+</div>
   </motion.div>
 );
 
@@ -831,7 +843,8 @@ const CircuitBreakerSVG = () => {
           {state.toUpperCase()}
         </span>
       </p>
-      <svg viewBox="0 0 600 240" className="w-full max-w-xl mx-auto">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 240" className="w-full max-w-xl mx-auto min-w-[600px] lg:min-w-0">
         {/* Closed state */}
         <motion.circle
           cx="100"
@@ -960,6 +973,7 @@ const CircuitBreakerSVG = () => {
           </marker>
         </defs>
       </svg>
+</div>
     </motion.div>
   );
 };
@@ -976,7 +990,8 @@ const KubernetesDiagram = () => (
     <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4 text-center">
       Kubernetes Cluster Architecture
     </h4>
-    <svg viewBox="0 0 700 320" className="w-full max-w-2xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 320" className="w-full max-w-2xl mx-auto min-w-[700px] lg:min-w-0">
       {/* Cluster boundary */}
       <rect x="10" y="10" width="680" height="300" rx="12" fill="none" stroke="#326ce530" strokeWidth="2" strokeDasharray="6 4" />
       <text x="50" y="32" fill="#326ce5" fontSize="11" fontWeight="bold">K8s Cluster</text>
@@ -1066,6 +1081,7 @@ const KubernetesDiagram = () => (
         K8s Service → stable endpoint → routes to Pods
       </text>
     </svg>
+</div>
   </motion.div>
 );
 

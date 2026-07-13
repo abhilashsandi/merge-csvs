@@ -85,7 +85,8 @@ function CollaborativeEditingSVG() {
   }, []);
 
   return (
-    <svg viewBox="0 0 700 340" className="w-full max-w-3xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 340" className="w-full max-w-3xl mx-auto min-w-[700px] lg:min-w-0">
       <defs>
         <linearGradient id="m4-bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#0f172a" />
@@ -223,6 +224,7 @@ function CollaborativeEditingSVG() {
         </>
       )}
     </svg>
+</div>
   );
 }
 
@@ -739,7 +741,8 @@ function AWSDecOutageSection() {
         </h3>
 
         {/* Animated SVG – Network Congestion */}
-        <svg viewBox="0 0 600 220" className="w-full max-w-2xl mx-auto">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 220" className="w-full max-w-2xl mx-auto min-w-[600px] lg:min-w-0">
           <defs>
             <linearGradient id="m4-aws-bg" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#1a0f00" />
@@ -816,6 +819,7 @@ function AWSDecOutageSection() {
             Monitoring ran on the same internal network → couldn&apos;t observe the failure
           </text>
         </svg>
+</div>
 
         <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
           <p>
@@ -874,7 +878,8 @@ function ThreadExplosionSVG() {
   const threadCount = 20;
 
   return (
-    <svg viewBox="0 0 600 280" className="w-full max-w-2xl mx-auto">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 280" className="w-full max-w-2xl mx-auto min-w-[600px] lg:min-w-0">
       <defs>
         <linearGradient id="m4-kinesis-bg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#0f0a1a" />
@@ -965,6 +970,7 @@ function ThreadExplosionSVG() {
         </motion.g>
       )}
     </svg>
+</div>
   );
 }
 
@@ -1210,7 +1216,8 @@ function DesignLessonsSection() {
         <h3 className="text-lg font-semibold text-amber-300 mb-3 flex items-center gap-2">
           <Activity className="w-5 h-5" /> Circuit Breaker State Machine
         </h3>
-        <svg viewBox="0 0 600 180" className="w-full max-w-2xl mx-auto">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 180" className="w-full max-w-2xl mx-auto min-w-[600px] lg:min-w-0">
           <rect width="600" height="180" rx="14" fill="#0f1219" />
 
           {/* Closed state */}
@@ -1267,6 +1274,7 @@ function DesignLessonsSection() {
             </marker>
           </defs>
         </svg>
+</div>
       </motion.div>
 
       {/* ── Lesson Cards ── */}

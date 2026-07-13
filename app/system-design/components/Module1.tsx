@@ -107,13 +107,13 @@ function Section({ id, number, title, icon, children }: SectionProps) {
     >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-4 group cursor-pointer"
+        className="w-full flex items-start sm:items-center gap-3 sm:gap-4 group cursor-pointer"
       >
-        <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-slate-900 dark:text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+        <span className="flex shrink-0 items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-slate-900 dark:text-white font-bold text-lg shadow-lg shadow-blue-500/20">
           {number}
         </span>
         <span className="text-slate-900 dark:text-white">{icon}</span>
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors flex-1 text-left">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors flex-1 text-left mt-1 sm:mt-0">
           {title}
         </h2>
         {open ? (
@@ -122,7 +122,7 @@ function Section({ id, number, title, icon, children }: SectionProps) {
           <ChevronDown className="w-6 h-6 text-slate-600 dark:text-slate-400" />
         )}
       </button>
-      <div className="mt-2 ml-16 border-l-2 border-slate-300 dark:border-slate-700 pl-6">
+      <div className="mt-4 ml-0 md:ml-16 border-l-0 md:border-l-2 border-slate-300 dark:border-slate-700 pl-0 md:pl-6">
         <AnimatePresence>
           {open && (
             <motion.div
@@ -152,7 +152,7 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-slate-300/60 dark:border-slate-700/60 bg-slate-100/80 dark:bg-slate-800/50 backdrop-blur-sm p-6 shadow-xl ${className}`}
+      className={`rounded-2xl border border-slate-300/60 dark:border-slate-700/60 bg-slate-100/80 dark:bg-slate-800/50 backdrop-blur-sm p-4 sm:p-6 shadow-xl ${className}`}
     >
       {children}
     </div>
@@ -207,8 +207,8 @@ function DesignVsArchitecture() {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <motion.div variants={slideIn('left')} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           <Card className="border-blue-500/30 h-full">
-            <div className="flex items-center gap-3 mb-4">
-              <Code2 className="w-8 h-8 text-blue-400" />
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+              <Code2 className="w-8 h-8 text-blue-400 shrink-0" />
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Software Design</h3>
               <Badge color="blue">Tactical</Badge>
             </div>
@@ -228,8 +228,8 @@ function DesignVsArchitecture() {
 
         <motion.div variants={slideIn('right')} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           <Card className="border-purple-500/30 h-full">
-            <div className="flex items-center gap-3 mb-4">
-              <Blocks className="w-8 h-8 text-purple-400" />
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+              <Blocks className="w-8 h-8 text-purple-400 shrink-0" />
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Software Architecture</h3>
               <Badge color="purple">Strategic</Badge>
             </div>
@@ -251,7 +251,8 @@ function DesignVsArchitecture() {
       {/* Visual: Scale diagram */}
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Abstraction Spectrum</h4>
-        <svg viewBox="0 0 800 120" className="w-full" aria-label="Abstraction spectrum from code to architecture">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 120" className="w-full min-w-[800px] lg:min-w-0" aria-label="Abstraction spectrum from code to architecture">
           <defs>
             <linearGradient id="spectrumGrad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#3b82f6" />
@@ -279,6 +280,7 @@ function DesignVsArchitecture() {
           <text x="50" y="95" fill="#94a3b8" fontSize="11">Low-level / Tactical</text>
           <text x="610" y="95" fill="#94a3b8" fontSize="11">High-level / Strategic</text>
         </svg>
+</div>
       </Card>
 
       <Card>
@@ -327,7 +329,8 @@ function WaterfallModel() {
       {/* Animated Waterfall SVG */}
       <Card className="mb-6 overflow-x-auto">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Waterfall Flow Diagram</h4>
-        <svg viewBox="0 0 900 500" className="w-full min-w-[600px]" aria-label="Waterfall model steps flowing downward">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 900 500" className="w-full min-w-[600px]" aria-label="Waterfall model steps flowing downward">
           <defs>
             <filter id="dropShadow">
               <feDropShadow dx="2" dy="2" stdDeviation="3" floodOpacity="0.3" />
@@ -380,6 +383,7 @@ function WaterfallModel() {
             </marker>
           </defs>
         </svg>
+</div>
       </Card>
 
       {/* Step details */}
@@ -387,7 +391,7 @@ function WaterfallModel() {
         {steps.map((step, i) => (
           <motion.div key={step.label} custom={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
             <Card className="h-full">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="text-2xl">{step.icon}</span>
                 <h5 className="text-slate-900 dark:text-white font-semibold">{step.label}</h5>
               </div>
@@ -432,25 +436,25 @@ function AgileMethods() {
       title: 'Individuals & Interactions',
       over: 'Processes & Tools',
       desc: 'Value people and communication over rigid processes. Face-to-face conversation is the most efficient form of communication.',
-      icon: <Users className="w-8 h-8 text-blue-400" />,
+      icon: <Users className="w-8 h-8 text-blue-400 shrink-0" />,
     },
     {
       title: 'Working Software',
       over: 'Comprehensive Documentation',
       desc: 'Deliver functional software frequently. Documentation is important but working code is the primary measure of progress.',
-      icon: <Code2 className="w-8 h-8 text-green-400" />,
+      icon: <Code2 className="w-8 h-8 text-green-400 shrink-0" />,
     },
     {
       title: 'Customer Collaboration',
       over: 'Contract Negotiation',
       desc: 'Engage customers continuously. Requirements evolve through collaboration, not rigid contracts.',
-      icon: <MessageSquare className="w-8 h-8 text-purple-400" />,
+      icon: <MessageSquare className="w-8 h-8 text-purple-400 shrink-0" />,
     },
     {
       title: 'Responding to Change',
       over: 'Following a Plan',
       desc: 'Welcome changing requirements, even late in development. Agile processes harness change for competitive advantage.',
-      icon: <RefreshCw className="w-8 h-8 text-amber-400" />,
+      icon: <RefreshCw className="w-8 h-8 text-amber-400 shrink-0" />,
     },
   ];
 
@@ -489,7 +493,8 @@ function AgileMethods() {
       {/* Agile Iteration SVG */}
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Agile Iterative Cycle</h4>
-        <svg viewBox="0 0 600 300" className="w-full max-w-xl mx-auto" aria-label="Agile iterative cycle diagram">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 600 300" className="w-full max-w-xl mx-auto min-w-[600px] lg:min-w-0" aria-label="Agile iterative cycle diagram">
           {/* Center */}
           <motion.circle cx="300" cy="150" r="40" fill="#3b82f6" opacity="0.2" stroke="#3b82f6" strokeWidth="2"
             animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 3, repeat: Infinity }}
@@ -549,6 +554,7 @@ function AgileMethods() {
             Each sprint: 1-4 weeks → Shippable increment
           </text>
         </svg>
+</div>
       </Card>
 
       <Card>
@@ -780,7 +786,8 @@ function ArchitecturalStructures() {
       {/* Visual relationship */}
       <Card>
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">How Structures Relate</h4>
-        <svg viewBox="0 0 700 200" className="w-full" aria-label="Architectural structures relationship">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 200" className="w-full min-w-[700px] lg:min-w-0" aria-label="Architectural structures relationship">
           {/* Three pillars */}
           {[
             { x: 100, label: 'Module', sub: '(Static)', color: '#3b82f6' },
@@ -812,6 +819,7 @@ function ArchitecturalStructures() {
             Together, these structures give a complete view of the architecture.
           </text>
         </svg>
+</div>
       </Card>
     </Section>
   );
@@ -840,7 +848,8 @@ function CentralizedVsDecentralized() {
             <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-3 flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-400" /> Centralized
             </h4>
-            <svg viewBox="0 0 300 220" className="w-full mb-4" aria-label="Centralized architecture with controller and workers">
+            <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 300 220" className="w-full mb-4 min-w-[300px] lg:min-w-0" aria-label="Centralized architecture with controller and workers">
               {/* Controller */}
               <motion.circle cx="150" cy="60" r="35" fill="#3b82f6" opacity="0.2" stroke="#3b82f6" strokeWidth="2"
                 animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}
@@ -856,6 +865,7 @@ function CentralizedVsDecentralized() {
                 </g>
               ))}
             </svg>
+</div>
             <ul className="text-slate-700 dark:text-slate-300 text-sm space-y-1">
               <li>✅ Single point of coordination</li>
               <li>✅ Easier to manage and debug</li>
@@ -877,7 +887,8 @@ function CentralizedVsDecentralized() {
             <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-3 flex items-center gap-2">
               <GitBranch className="w-5 h-5 text-purple-400" /> Decentralized
             </h4>
-            <svg viewBox="0 0 300 220" className="w-full mb-4" aria-label="Decentralized architecture with equal peer nodes">
+            <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 300 220" className="w-full mb-4 min-w-[300px] lg:min-w-0" aria-label="Decentralized architecture with equal peer nodes">
               {/* Equal nodes in mesh */}
               {[
                 { x: 150, y: 50 },
@@ -900,6 +911,7 @@ function CentralizedVsDecentralized() {
                 </g>
               ))}
             </svg>
+</div>
             <ul className="text-slate-700 dark:text-slate-300 text-sm space-y-1">
               <li>✅ No single point of failure</li>
               <li>✅ Scales naturally with more nodes</li>
@@ -946,7 +958,8 @@ function LayeredArchitecture() {
       {/* Stack SVG */}
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Layer Stack Diagram</h4>
-        <svg viewBox="0 0 700 360" className="w-full" aria-label="Layered architecture stack with four layers">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 360" className="w-full min-w-[700px] lg:min-w-0" aria-label="Layered architecture stack with four layers">
           {layers.map((layer, i) => {
             const y = 30 + i * 80;
             return (
@@ -980,6 +993,7 @@ function LayeredArchitecture() {
             );
           })}
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -1017,9 +1031,9 @@ function LayeredArchitecture() {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function NTierArchitecture() {
   const tiers = [
-    { name: 'Presentation Tier', icon: <Monitor className="w-8 h-8 text-blue-400" />, color: '#3b82f6', items: ['Web Browser', 'Mobile App', 'Desktop Client'], desc: 'User-facing interface. Renders UI and captures user input. Runs on client machines.' },
-    { name: 'Business / Logic Tier', icon: <Cpu className="w-8 h-8 text-purple-400" />, color: '#8b5cf6', items: ['API Server', 'Application Logic', 'Business Rules'], desc: 'Core processing. Validates data, applies business rules, coordinates workflows. Runs on application servers.' },
-    { name: 'Data Tier', icon: <Database className="w-8 h-8 text-green-400" />, color: '#10b981', items: ['SQL Database', 'NoSQL Store', 'File Storage'], desc: 'Persistent storage. Manages data access, CRUD operations, and data integrity. Runs on database servers.' },
+    { name: 'Presentation Tier', icon: <Monitor className="w-8 h-8 text-blue-400 shrink-0" />, color: '#3b82f6', items: ['Web Browser', 'Mobile App', 'Desktop Client'], desc: 'User-facing interface. Renders UI and captures user input. Runs on client machines.' },
+    { name: 'Business / Logic Tier', icon: <Cpu className="w-8 h-8 text-purple-400 shrink-0" />, color: '#8b5cf6', items: ['API Server', 'Application Logic', 'Business Rules'], desc: 'Core processing. Validates data, applies business rules, coordinates workflows. Runs on application servers.' },
+    { name: 'Data Tier', icon: <Database className="w-8 h-8 text-green-400 shrink-0" />, color: '#10b981', items: ['SQL Database', 'NoSQL Store', 'File Storage'], desc: 'Persistent storage. Manages data access, CRUD operations, and data integrity. Runs on database servers.' },
   ];
 
   return (
@@ -1101,7 +1115,8 @@ function MVCPattern() {
       {/* MVC SVG Diagram */}
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">MVC Interaction Cycle</h4>
-        <svg viewBox="0 0 700 350" className="w-full" aria-label="MVC pattern showing Model, View, Controller cycle">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 350" className="w-full min-w-[700px] lg:min-w-0" aria-label="MVC pattern showing Model, View, Controller cycle">
           {/* View */}
           <motion.g initial={{ opacity: 0, y: -20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} viewport={{ once: true }}>
             <rect x="260" y="20" width="180" height="80" rx="16" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" strokeWidth="2" />
@@ -1155,6 +1170,7 @@ function MVCPattern() {
             </marker>
           </defs>
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-3 gap-4">
@@ -1192,7 +1208,8 @@ function ClientServer() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 250" className="w-full" aria-label="Client-server request response diagram">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 250" className="w-full min-w-[700px] lg:min-w-0" aria-label="Client-server request response diagram">
           {/* Clients */}
           {[80, 80, 80].map((_, i) => {
             const y = 40 + i * 70;
@@ -1232,6 +1249,7 @@ function ClientServer() {
           <line x1="370" y1="235" x2="410" y2="235" stroke="#10b981" strokeWidth="2" strokeDasharray="5 3" />
           <text x="415" y="239" fill="#94a3b8" fontSize="10">Response</text>
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -1312,7 +1330,8 @@ function PeerToPeer() {
       {/* P2P mesh SVG */}
       <Card>
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">P2P Network Topology</h4>
-        <svg viewBox="0 0 500 250" className="w-full max-w-md mx-auto" aria-label="Peer-to-peer mesh network">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 500 250" className="w-full max-w-md mx-auto min-w-[500px] lg:min-w-0" aria-label="Peer-to-peer mesh network">
           {[
             { x: 250, y: 40 },
             { x: 100, y: 110 },
@@ -1341,6 +1360,7 @@ function PeerToPeer() {
             </g>
           ))}
         </svg>
+</div>
       </Card>
     </Section>
   );
@@ -1364,7 +1384,8 @@ function BrokerPattern() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 220" className="w-full" aria-label="Broker pattern with clients, broker, and servers">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 220" className="w-full min-w-[700px] lg:min-w-0" aria-label="Broker pattern with clients, broker, and servers">
           {/* Clients */}
           {['Client A', 'Client B'].map((label, i) => (
             <g key={label}>
@@ -1406,6 +1427,7 @@ function BrokerPattern() {
             </g>
           ))}
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -1462,7 +1484,8 @@ function PipeAndFilter() {
 
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Data Pipeline Diagram</h4>
-        <svg viewBox="0 0 900 140" className="w-full min-w-[600px]" aria-label="Pipe and filter pipeline with sequential stages">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 900 140" className="w-full min-w-[600px]" aria-label="Pipe and filter pipeline with sequential stages">
           {stages.map((stage, i) => {
             const x = 30 + i * 145;
             return (
@@ -1494,6 +1517,7 @@ function PipeAndFilter() {
             Data flows left → right through independent, composable stages
           </text>
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -1539,7 +1563,8 @@ function EventDriven() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 280" className="w-full" aria-label="Event-driven architecture with producers, event channel, and consumers">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 280" className="w-full min-w-[700px] lg:min-w-0" aria-label="Event-driven architecture with producers, event channel, and consumers">
           {/* Producers */}
           <text x="80" y="25" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="bold">Producers</text>
           {['Order Svc', 'User Svc', 'Payment Svc'].map((label, i) => (
@@ -1586,6 +1611,7 @@ function EventDriven() {
             </g>
           ))}
         </svg>
+</div>
       </Card>
 
       <Card>
@@ -1626,7 +1652,8 @@ function PubSub() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 300" className="w-full" aria-label="Publish-subscribe with publishers, event bus with topics, and subscribers">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 300" className="w-full min-w-[700px] lg:min-w-0" aria-label="Publish-subscribe with publishers, event bus with topics, and subscribers">
           {/* Publishers */}
           {['Pub 1', 'Pub 2'].map((label, i) => (
             <g key={label}>
@@ -1665,6 +1692,7 @@ function PubSub() {
           <line x1="455" y1="155" x2="555" y2="155" stroke="#10b981" strokeWidth="1" opacity="0.4" />
           <line x1="455" y1="155" x2="555" y2="235" stroke="#10b981" strokeWidth="1" opacity="0.4" />
         </svg>
+</div>
       </Card>
 
       <div className="flex flex-wrap gap-2">
@@ -1698,7 +1726,8 @@ function HexagonalArchitecture() {
 
       <Card className="mb-6">
         <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Hexagonal Structure</h4>
-        <svg viewBox="0 0 700 400" className="w-full" aria-label="Hexagonal architecture with core domain, ports, and adapters">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 400" className="w-full min-w-[700px] lg:min-w-0" aria-label="Hexagonal architecture with core domain, ports, and adapters">
           <defs>
             <linearGradient id="hexGrad" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#3b82f6" />
@@ -1753,6 +1782,7 @@ function HexagonalArchitecture() {
             </motion.g>
           ))}
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-3 gap-4">
@@ -1828,7 +1858,8 @@ function ServerlessArchitecture() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 220" className="w-full" aria-label="Serverless architecture with events triggering cloud functions">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 220" className="w-full min-w-[700px] lg:min-w-0" aria-label="Serverless architecture with events triggering cloud functions">
           {/* Events */}
           {[
             { label: 'HTTP', y: 30 },
@@ -1866,6 +1897,7 @@ function ServerlessArchitecture() {
             </g>
           ))}
         </svg>
+</div>
       </Card>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -1921,7 +1953,8 @@ function MonolithicArchitecture() {
       </p>
 
       <Card className="mb-6">
-        <svg viewBox="0 0 700 260" className="w-full" aria-label="Monolithic architecture as a single deployment unit">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 260" className="w-full min-w-[700px] lg:min-w-0" aria-label="Monolithic architecture as a single deployment unit">
           {/* Big monolith box */}
           <motion.rect x="100" y="20" width="500" height="200" rx="20"
             fill="#8b5cf6" opacity="0.08" stroke="#8b5cf6" strokeWidth="2"
@@ -1950,6 +1983,7 @@ function MonolithicArchitecture() {
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.8 }} viewport={{ once: true }} />
           <text x="350" y="250" textAnchor="middle" fill="#94a3b8" fontSize="10">Single Database</text>
         </svg>
+</div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -2001,7 +2035,8 @@ function ScalabilitySection() {
             <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-3 flex items-center gap-2">
               <ArrowUpDown className="w-5 h-5 text-blue-400" /> Vertical Scaling (Scale Up)
             </h4>
-            <svg viewBox="0 0 300 200" className="w-full mb-4" aria-label="Vertical scaling: making one server bigger">
+            <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 300 200" className="w-full mb-4 min-w-[300px] lg:min-w-0" aria-label="Vertical scaling: making one server bigger">
               {/* Small server growing */}
               <motion.rect x="50" y="120" width="80" height="60" rx="8" fill="#3b82f6" opacity="0.2" stroke="#3b82f6" strokeWidth="2" />
               <text x="90" y="155" textAnchor="middle" fill="white" fontSize="10">4 CPU</text>
@@ -2023,6 +2058,7 @@ function ScalabilitySection() {
               <text x="230" y="125" textAnchor="middle" fill="#93c5fd" fontSize="9">256 GB</text>
               <text x="230" y="140" textAnchor="middle" fill="#93c5fd" fontSize="9">NVMe SSD</text>
             </svg>
+</div>
             <p className="text-slate-700 dark:text-slate-300 text-sm mb-3">Add more power to an existing machine: more CPU, RAM, faster storage.</p>
             <ul className="text-slate-600 dark:text-slate-400 text-xs space-y-1">
               <li>✅ Simpler—no distributed systems complexity</li>
@@ -2046,7 +2082,8 @@ function ScalabilitySection() {
             <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-3 flex items-center gap-2">
               <Scale className="w-5 h-5 text-green-400" /> Horizontal Scaling (Scale Out)
             </h4>
-            <svg viewBox="0 0 300 200" className="w-full mb-4" aria-label="Horizontal scaling: adding more servers">
+            <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 300 200" className="w-full mb-4 min-w-[300px] lg:min-w-0" aria-label="Horizontal scaling: adding more servers">
               {/* Single server */}
               <motion.rect x="30" y="80" width="60" height="50" rx="8" fill="#10b981" opacity="0.2" stroke="#10b981" strokeWidth="2" />
               <text x="60" y="110" textAnchor="middle" fill="white" fontSize="9">Srv 1</text>
@@ -2072,6 +2109,7 @@ function ScalabilitySection() {
                 </motion.g>
               ))}
             </svg>
+</div>
             <p className="text-slate-700 dark:text-slate-300 text-sm mb-3">Add more machines to distribute the load. Each handles a portion of traffic.</p>
             <ul className="text-slate-600 dark:text-slate-400 text-xs space-y-1">
               <li>✅ Virtually unlimited scale</li>
@@ -2150,7 +2188,7 @@ function Bottlenecks() {
         {causes.map((c, i) => (
           <motion.div key={c.name} variants={fadeUp} custom={i}>
             <Card className="h-full border-red-500/20 hover:border-red-500/40 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 {c.icon}
                 <h5 className="text-slate-900 dark:text-white font-semibold text-sm">{c.name}</h5>
               </div>
@@ -2165,7 +2203,8 @@ function Bottlenecks() {
       {/* Resolution strategies */}
       <Card>
         <h4 className="text-slate-900 dark:text-white font-semibold mb-4">Systematic Bottleneck Resolution</h4>
-        <svg viewBox="0 0 800 100" className="w-full" aria-label="Bottleneck resolution pipeline">
+        <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 100" className="w-full min-w-[800px] lg:min-w-0" aria-label="Bottleneck resolution pipeline">
           {[
             { label: 'Monitor', color: '#3b82f6', desc: 'APM, Logs' },
             { label: 'Profile', color: '#8b5cf6', desc: 'CPU, Memory' },
@@ -2190,6 +2229,7 @@ function Bottlenecks() {
             );
           })}
         </svg>
+</div>
         <p className="text-slate-600 dark:text-slate-400 text-sm mt-4">
           <strong className="text-slate-900 dark:text-white">Remember:</strong> Premature optimization is the root of all evil (Knuth). Always measure first,
           then optimize the actual bottleneck—not what you <em>think</em> is slow.

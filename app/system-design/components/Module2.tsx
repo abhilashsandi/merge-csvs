@@ -175,7 +175,8 @@ function MonolithVsMicroservicesSVG() {
           {showMicro ? 'Show Monolith' : 'Show Microservices'}
         </button>
       </div>
-      <svg viewBox="0 0 800 380" className="w-full max-w-3xl mx-auto">
+      <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 380" className="w-full max-w-3xl mx-auto min-w-[800px] lg:min-w-0">
         <defs>
           <linearGradient id="monoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#ef4444" />
@@ -343,6 +344,7 @@ function MonolithVsMicroservicesSVG() {
           )}
         </AnimatePresence>
       </svg>
+</div>
     </div>
   );
 }
@@ -352,7 +354,8 @@ function MonolithVsMicroservicesSVG() {
    ═══════════════════════════════════════════════════════════════════ */
 function BoundedContextMapSVG() {
   return (
-    <svg viewBox="0 0 800 500" className="w-full max-w-3xl mx-auto my-8">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 500" className="w-full max-w-3xl mx-auto my-8 min-w-[800px] lg:min-w-0">
       <defs>
         <linearGradient id="bcGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.3" />
@@ -546,6 +549,7 @@ function BoundedContextMapSVG() {
         U/D = Upstream/Downstream · C/S = Customer/Supplier · ACL = Anti-Corruption Layer
       </text>
     </svg>
+</div>
   );
 }
 
@@ -563,7 +567,8 @@ function DockerLayersSVG() {
   ];
 
   return (
-    <svg viewBox="0 0 700 420" className="w-full max-w-2xl mx-auto my-8">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 700 420" className="w-full max-w-2xl mx-auto my-8 min-w-[700px] lg:min-w-0">
       <text x="350" y="28" textAnchor="middle" fill="#e2e8f0" fontSize="18" fontWeight="bold">
         Docker Image Layers (Union Filesystem)
       </text>
@@ -624,6 +629,7 @@ function DockerLayersSVG() {
         Shared Kernel
       </text>
     </svg>
+</div>
   );
 }
 
@@ -632,7 +638,8 @@ function DockerLayersSVG() {
    ═══════════════════════════════════════════════════════════════════ */
 function MigrationTimelineSVG() {
   return (
-    <svg viewBox="0 0 800 340" className="w-full max-w-3xl mx-auto my-8">
+    <div className="w-full overflow-x-auto slick-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+<svg viewBox="0 0 800 340" className="w-full max-w-3xl mx-auto my-8 min-w-[800px] lg:min-w-0">
       <text x="400" y="25" textAnchor="middle" fill="#e2e8f0" fontSize="18" fontWeight="bold">
         Strangler Fig Migration Pattern
       </text>
@@ -688,6 +695,7 @@ function MigrationTimelineSVG() {
         Microservices (growing)
       </text>
     </svg>
+</div>
   );
 }
 
@@ -1160,7 +1168,7 @@ export default function Module2() {
                   custom={i}
                   className={`p-5 rounded-2xl bg-gradient-to-r ${p.color} border ${p.border}`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-xl">{p.icon}</span>
                     <h3 className="text-slate-900 dark:text-white font-bold text-base">{p.pattern}</h3>
                   </div>
@@ -1320,7 +1328,7 @@ export default function Module2() {
                   custom={i}
                   className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-teal-500/30 transition-all group"
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="w-7 h-7 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400 text-xs font-bold">
                       {principle.num}
                     </span>

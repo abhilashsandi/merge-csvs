@@ -48,7 +48,7 @@ export default function SearchCommandPalette({ onSelect }: { onSelect: (moduleId
       {/* Search trigger button (for mobile or clickers) */}
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed top-6 right-20 z-50 p-3 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xl hover:scale-110 transition-transform flex items-center gap-2"
+        className="fixed top-3 right-14 sm:top-6 sm:right-20 z-50 p-2 sm:p-3 rounded-full scale-90 sm:scale-100 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xl hover:scale-110 transition-transform flex items-center gap-2"
       >
         <Search className="w-5 h-5" />
         <span className="hidden md:inline text-xs font-semibold px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded-md">Cmd K</span>

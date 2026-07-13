@@ -53,45 +53,45 @@ export default function ArchitectureSandbox() {
       )}
 
       {/* The Canvas */}
-      <div className="mt-20 h-64 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl relative flex items-center justify-around p-4">
+      <div className="mt-20 h-auto sm:h-64 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl relative flex flex-col sm:flex-row items-center justify-around p-4 sm:p-4 gap-4 sm:gap-0">
         
         {/* Drop zones / Slots */}
-        <div className={`w-32 h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['lb'] ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
+        <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['lb'] ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tier 1</span>
-          {placed['lb'] && <Server className="w-12 h-12 text-blue-500 mb-1" />}
+          {placed['lb'] && <Server className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500 mb-1" />}
           {placed['lb'] && <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Load Balancer</span>}
         </div>
         
-        {placed['lb'] && placed['web'] && <ArrowRight className="text-slate-400 animate-pulse" />}
+        {placed['lb'] && placed['web'] && <ArrowRight className="text-slate-400 animate-pulse rotate-90 sm:rotate-0" />}
         
-        <div className={`w-32 h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['web'] ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
+        <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['web'] ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tier 2</span>
-          {placed['web'] && <Server className="w-12 h-12 text-purple-500 mb-1" />}
+          {placed['web'] && <Server className="w-8 h-8 sm:w-12 sm:h-12 text-purple-500 mb-1" />}
           {placed['web'] && <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Web Servers</span>}
         </div>
 
-        {placed['web'] && placed['db'] && <ArrowRight className="text-slate-400 animate-pulse" />}
+        {placed['web'] && placed['db'] && <ArrowRight className="text-slate-400 animate-pulse rotate-90 sm:rotate-0" />}
 
-        <div className={`w-32 h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['db'] ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
+        <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-2 flex flex-col items-center justify-center transition-colors ${placed['db'] ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-slate-200 dark:border-slate-800 border-dashed'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tier 3</span>
-          {placed['db'] && <Database className="w-12 h-12 text-emerald-500 mb-1" />}
+          {placed['db'] && <Database className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-500 mb-1" />}
           {placed['db'] && <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Database</span>}
         </div>
 
       </div>
 
       {/* The Dock */}
-      <div className="mt-8 bg-slate-200 dark:bg-slate-800 p-4 rounded-2xl flex justify-center gap-6">
+      <div className="mt-8 bg-slate-200 dark:bg-slate-800 p-4 rounded-2xl flex flex-wrap justify-center gap-4 sm:gap-6">
         
         {!placed['lb'] && (
           <motion.div 
             drag
             dragConstraints={constraintsRef}
             onDragEnd={(e, info) => handleDragEnd('lb', info)}
-            className="w-32 h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
+            className="w-24 h-24 sm:w-32 sm:h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
           >
-            <Server className="w-12 h-12 text-blue-500 mb-2 pointer-events-none" />
-            <span className="font-bold text-slate-700 dark:text-slate-200 pointer-events-none">Load Balancer</span>
+            <Server className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500 mb-2 pointer-events-none" />
+            <span className="text-xs sm:text-base font-bold text-slate-700 dark:text-slate-200 pointer-events-none text-center">Load Balancer</span>
           </motion.div>
         )}
 
@@ -100,10 +100,10 @@ export default function ArchitectureSandbox() {
             drag
             dragConstraints={constraintsRef}
             onDragEnd={(e, info) => handleDragEnd('web', info)}
-            className="w-32 h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
+            className="w-24 h-24 sm:w-32 sm:h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
           >
-            <Server className="w-12 h-12 text-purple-500 mb-2 pointer-events-none" />
-            <span className="font-bold text-slate-700 dark:text-slate-200 pointer-events-none">Web Server</span>
+            <Server className="w-8 h-8 sm:w-12 sm:h-12 text-purple-500 mb-2 pointer-events-none" />
+            <span className="text-xs sm:text-base font-bold text-slate-700 dark:text-slate-200 pointer-events-none text-center">Web Server</span>
           </motion.div>
         )}
 
@@ -112,10 +112,10 @@ export default function ArchitectureSandbox() {
             drag
             dragConstraints={constraintsRef}
             onDragEnd={(e, info) => handleDragEnd('db', info)}
-            className="w-32 h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
+            className="w-24 h-24 sm:w-32 sm:h-32 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-50 hover:scale-105 transition-transform"
           >
-            <Database className="w-12 h-12 text-emerald-500 mb-2 pointer-events-none" />
-            <span className="font-bold text-slate-700 dark:text-slate-200 pointer-events-none">Database</span>
+            <Database className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-500 mb-2 pointer-events-none" />
+            <span className="text-xs sm:text-base font-bold text-slate-700 dark:text-slate-200 pointer-events-none text-center">Database</span>
           </motion.div>
         )}
 
