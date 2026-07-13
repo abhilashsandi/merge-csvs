@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Module Imports
 import { JsFundamentalsModule } from './components/JsFundamentalsModule';
 import { CoreHooksModule } from './components/CoreHooksModule';
 import { PromiseModule } from './components/PromiseModule';
@@ -27,43 +30,148 @@ const tabs = [
 
 export default function ReactTrainingPage() {
   const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const ActiveComponent = tabs.find(t => t.id === activeTab)?.Component || tabs[0].Component;
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shrink-0">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            React Interactive
-          </h1>
-          <p className="text-sm text-slate-500 mt-2">Candidate Training Portal</p>
+  // Modern Sidebar Navigation Component
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full bg-[#0a0f1a]/80 backdrop-blur-xl border-r border-white/5 relative z-20">
+      <div className="p-6 md:p-8 shrink-0">
+        <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center mb-5 shadow-lg shadow-indigo-500/20 border border-white/10">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
         </div>
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-4">
-            {tabs.map((tab) => (
-              <li key={tab.id}>
-                <button
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                  }`}
+        <h1 className="text-2xl font-black text-white tracking-tight">
+          React<span className="text-violet-400">Interactive</span>
+        </h1>
+        <p className="text-xs text-slate-400 font-semibold tracking-widest uppercase mt-2">Candidate Training</p>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-4 pb-8 space-y-1" style={{ scrollbarWidth: 'none' }}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+              className={`w-full relative flex items-center px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-300 ${
+                isActive 
+                  ? 'text-white' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 bg-violet-500/15 border border-violet-500/30 rounded-2xl shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                  transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-3">
+                <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${isActive ? 'bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.8)]' : 'bg-slate-700'}`} />
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+      
+      <div className="p-6 shrink-0 border-t border-white/5">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500" />
+          <div className="text-left">
+            <p className="text-sm font-bold text-white">Mock Interviewer</p>
+            <p className="text-xs text-emerald-400 font-medium">AI Active</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#06080d] text-slate-200 flex flex-col md:flex-row font-sans selection:bg-violet-500/30 relative overflow-hidden">
+      
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0a0f1a]/80 backdrop-blur-xl sticky top-0 z-50">
+        <h1 className="text-xl font-black text-white tracking-tight">
+          React<span className="text-violet-400">Interactive</span>
+        </h1>
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile Navigation Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="fixed inset-y-0 left-0 w-[300px] z-[70] md:hidden shadow-2xl"
+            >
+              <div className="absolute top-4 right-4 z-50">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-2.5 text-slate-400 hover:text-white bg-black/50 border border-white/10 rounded-xl backdrop-blur-md"
                 >
-                  {tab.label}
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                   </svg>
                 </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+              </div>
+              <SidebarContent />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-[320px] shrink-0 h-screen sticky top-0">
+        <SidebarContent />
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-6 md:p-12">
-          <ActiveComponent />
+      <main className="flex-1 h-screen overflow-y-auto relative scroll-smooth">
+        {/* Deep background ambient glows */}
+        <div className="fixed top-[-10%] left-[20%] w-[800px] h-[800px] bg-violet-600/10 rounded-full blur-[150px] pointer-events-none mix-blend-screen" />
+        <div className="fixed bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+        <div className="fixed top-[40%] right-[30%] w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+
+        <div className="relative z-10 w-full mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-16 pb-32 min-h-full">
+          {mounted && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 15, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -15, filter: 'blur(8px)' }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full h-full flex flex-col"
+              >
+                <ActiveComponent />
+              </motion.div>
+            </AnimatePresence>
+          )}
         </div>
       </main>
     </div>
