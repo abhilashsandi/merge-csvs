@@ -14,6 +14,7 @@ import { RtlModule } from './components/RtlModule';
 import { MemoModule } from './components/MemoModule';
 import { AlgorithmsModule } from './components/AlgorithmsModule';
 import { React19Module } from './components/React19Module';
+import { MockInterviewModule } from './components/MockInterviewModule';
 
 const tabs = [
   { id: 'js', label: 'JavaScript Fundamentals', Component: JsFundamentalsModule },
@@ -26,6 +27,7 @@ const tabs = [
   { id: 'forms', label: 'Controlled vs Uncontrolled', Component: FormModule },
   { id: 'algorithms', label: 'Coding Practice (Algorithms)', Component: AlgorithmsModule },
   { id: 'react19', label: 'React 19 (Actions, use)', Component: React19Module },
+  { id: 'interview', label: 'Mock Interviewer (AI)', Component: MockInterviewModule },
 ];
 
 export default function ReactTrainingPage() {
@@ -81,20 +83,11 @@ export default function ReactTrainingPage() {
         })}
       </nav>
       
-      <div className="p-6 shrink-0 border-t border-white/5">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500" />
-          <div className="text-left">
-            <p className="text-sm font-bold text-white">Mock Interviewer</p>
-            <p className="text-xs text-emerald-400 font-medium">AI Active</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#06080d] text-slate-200 flex flex-col md:flex-row font-sans selection:bg-violet-500/30 relative overflow-hidden">
+    <div className="dark min-h-screen bg-[#06080d] text-slate-200 flex flex-col md:flex-row font-sans selection:bg-violet-500/30 relative overflow-hidden">
       
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0a0f1a]/80 backdrop-blur-xl sticky top-0 z-50">
