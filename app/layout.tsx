@@ -12,9 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { ThemeProvider } from "./components/ThemeProvider";
+
 export const metadata: Metadata = {
-  title: "Merge CSVs",
-  description: "Merge multiple CSV files with custom column management and primary key joins",
+  title: "DrillKit",
+  description: "Master engineering interviews with interactive AI prep and developer utilities",
 };
 
 export default function RootLayout({
@@ -23,11 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
