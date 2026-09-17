@@ -169,6 +169,7 @@ export default function LandingPage() {
                 { title: 'React.js', desc: 'Hooks, React 19, Patterns & AI Mock Interviews.', icon: Code2, href: '/react-training', color: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-100 dark:bg-cyan-400/10' },
                 { title: 'Node.js', desc: 'Event Loop, Streams, and Backend Architecture.', icon: TerminalSquare, href: '/nodejs', color: 'text-green-500 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-400/10' },
                 { title: 'Coding Practice', desc: 'Algorithms, Data Structures & Hackerrank questions.', icon: TerminalSquare, href: '/coding-questions', color: 'text-rose-500 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-400/10' },
+                { title: 'Interview Prep Guide', desc: '141 unified questions — JS, TS, React, Node, databases, system design, testing & more.', icon: FileText, href: '/interview-prep', color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-400/10' },
               ].map((item, i) => (
                 <motion.div 
                   key={item.title}
