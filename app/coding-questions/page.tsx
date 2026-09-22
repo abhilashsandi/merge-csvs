@@ -8,10 +8,12 @@ import { ThemeToggle } from '../components/ThemeToggle';
 // Module Imports
 import { AlgorithmsModule } from './components/AlgorithmsModule';
 import { HackerrankCodingModule } from './components/HackerrankCodingModule';
+import { ReactCodingModule } from './components/ReactCodingModule';
 
 const tabs = [
   { id: 'algorithms', label: 'Algorithms & Structures', Component: AlgorithmsModule },
   { id: 'hackerrank', label: 'Hackerrank Problems', Component: HackerrankCodingModule },
+  { id: 'react', label: 'React', Component: ReactCodingModule },
 ];
 
 export default function CodingQuestionsPage() {

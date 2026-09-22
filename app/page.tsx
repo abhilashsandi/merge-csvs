@@ -48,7 +48,7 @@ export default function LandingPage() {
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-            DrillKit
+            DevSpar
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -238,7 +238,7 @@ export default function LandingPage() {
         
         {/* Footer */}
         <footer className="border-t border-slate-200 dark:border-white/5 py-12 px-6 text-center text-slate-500 text-sm">
-          <p>© {new Date().getFullYear()} DrillKit. All systems operational.</p>
+          <p>© {new Date().getFullYear()} DevSpar. All systems operational.</p>
         </footer>
       </main>
     </div>

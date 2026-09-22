@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 import { ThemeProvider } from "./components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "DrillKit",
+  title: "DevSpar",
   description: "Master engineering interviews with interactive AI prep and developer utilities",
 };
 
