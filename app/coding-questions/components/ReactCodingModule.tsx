@@ -311,6 +311,171 @@ class ErrorBoundary extends Component {
     approach: 'Trade-off worth stating out loud in an interview: use() removes all manual loading/error state, but it is also less flexible than a hand-rolled useReducer/useEffect hook — retry-on-demand, cancellation on unmount, or a dynamic URL all require re-introducing caching/keying logic yourself (which is exactly what a data-fetching library like React Query exists to provide). use() is a strong fit for a static, one-shot fetch; anything more dynamic and the useReducer version earns its extra code back.',
     answer: 'See code implementation.',
   },
+  {
+    id: 'sibling-data-passing',
+    title: 'R9: Passing Data Between Sibling Components',
+    description: 'Given <Search /> and <ProductList /> as sibling components (not parent/child), what are the ways to get searchValue from Search into ProductList? Tests whether a candidate knows more than one tool and, more importantly, when to reach for which.',
+    code: `// 1. Lift state up to the common parent (the default answer)
+function App() {
+  const [searchValue, setSearchValue] = useState('');
+  return (
+    <>
+      <Search value={searchValue} onChange={setSearchValue} />
+      <ProductList searchValue={searchValue} />
+    </>
+  );
+}
+
+// 2. React Context - same idea, but skips prop drilling through a
+// deep tree between the common ancestor and the two components.
+const SearchContext = createContext(null);
+function SearchProvider({ children }) {
+  const [value, setValue] = useState('');
+  return (
+    <SearchContext.Provider value={{ value, setValue }}>
+      {children}
+    </SearchContext.Provider>
+  );
+}
+
+// 3. URL / query params - both components read/write the same URL,
+// so the value is shareable and survives a page refresh.
+const [searchParams, setSearchParams] = useSearchParams(); // react-router
+const searchValue = searchParams.get('q') ?? '';
+
+// 4. A global store (Zustand-style) - for a value that needs to be
+// read or written from many unrelated parts of the app, not just
+// these two components.
+const useSearchStore = create((set) => ({
+  value: '',
+  setValue: (v) => set({ value: v }),
+}));`,
+    approach: 'All four solve the same underlying problem: two siblings cannot pass props directly, so the shared value has to live somewhere both can reach. Lifting state to the nearest common ancestor is the default — no new infrastructure, and it is exactly what "lift state up" means in the React docs. Context is the same pattern applied when that ancestor is several levels away and prop drilling would actually hurt (3+ levels), not preemptively. URL params trade a little ceremony for a real product win: the search becomes bookmarkable and survives a refresh, which local state never does. A global store (Zustand/Redux/Jotai) is only justified once searchValue needs to be read or written from unrelated parts of the app — reaching for one by default for a two-component case is over-engineering.',
+    answer: 'Prefer lifting state to the nearest common parent by default; reach for Context only once prop drilling gets deep; prefer URL state whenever the value should be shareable or survive a refresh; reach for a global store only once more than these two components need it.',
+  },
+  {
+    id: 'product-grid-all-in-one',
+    title: 'R10: Product Grid — Fetch, Type, and Memoize (all together)',
+    description: 'Combine everything above into one page: fetch a paginated product API with typed interfaces, clean up the in-flight request properly on unmount, and apply React.memo / useCallback / useMemo correctly — only where they actually prevent wasted work, not decoratively.',
+    code: `interface Product {
+  id: number;
+  title: string;
+  price: number;
+  thumbnail: string;
+  rating: number;
+  category: string;
+  stock: number;
+}
+
+interface ProductsResponse {
+  products: Product[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+type ProductsAction =
+  | { type: 'loading' }
+  | { type: 'success'; products: Product[] }
+  | { type: 'error'; error: string };
+
+function productsReducer(state, action: ProductsAction) {
+  switch (action.type) {
+    case 'loading': return { products: [], error: null, isLoading: true };
+    case 'success': return { products: action.products, error: null, isLoading: false };
+    case 'error':   return { products: [], error: action.error, isLoading: false };
+    default: return state;
+  }
+}
+
+function useProducts(url: string) {
+  const [state, dispatch] = useReducer(productsReducer, { products: [], error: null, isLoading: true });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    dispatch({ type: 'loading' });
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(\`Request failed with status \${res.status}\`);
+        return res.json() as Promise<ProductsResponse>;
+      })
+      .then((data) => dispatch({ type: 'success', products: data.products }))
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return; // our own cleanup
+        dispatch({ type: 'error', error: error instanceof Error ? error.message : 'Something went wrong' });
+      });
+
+    return () => controller.abort(); // cancels the in-flight request on unmount / url change
+  }, [url]);
+
+  return state;
+}
+
+interface ProductCardProps {
+  product: Product;
+  isSelected: boolean;
+  onSelect: (id: number) => void;
+}
+
+// memo: this renders in a 12-item list. Without it, selecting one
+// card re-renders all twelve, since the parent re-renders on every
+// selection change.
+const ProductCard = memo(({ product, isSelected, onSelect }: ProductCardProps) => (
+  <li className={isSelected ? 'product-card product-card--selected' : 'product-card'}>
+    <button onClick={() => onSelect(product.id)} aria-pressed={isSelected}>
+      <img src={product.thumbnail} alt={product.title} loading="lazy" width={200} height={200} />
+      <h3>{product.title}</h3>
+      <span>\${product.price.toFixed(2)}</span>
+      <span>★ {product.rating.toFixed(1)}</span>
+      <span>{product.stock > 0 ? \`\${product.stock} in stock\` : 'Out of stock'}</span>
+    </button>
+  </li>
+));
+
+function App() {
+  const { products, error, isLoading } = useProducts(PRODUCTS_ENDPOINT);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // useCallback: keeps this reference stable so it doesn't defeat
+  // ProductCard's memo on every App re-render.
+  const handleSelect = useCallback((id: number) => {
+    setSelectedId((current) => (current === id ? null : id));
+  }, []);
+
+  // useMemo: only recomputed when \`products\` changes, not on every
+  // render - e.g. not when selecting a card.
+  const summary = useMemo(() => {
+    if (products.length === 0) return null;
+    const inStock = products.filter((p) => p.stock > 0).length;
+    const avgRating = products.reduce((sum, p) => sum + p.rating, 0) / products.length;
+    return { total: products.length, inStock, avgRating };
+  }, [products]);
+
+  if (isLoading) return <p role="status">Loading products…</p>;
+  if (error) return <p role="alert">Couldn't load products: {error}</p>;
+
+  return (
+    <section>
+      {summary && (
+        <p>{summary.total} products · {summary.inStock} in stock · avg rating {summary.avgRating.toFixed(1)}</p>
+      )}
+      <ul className="product-grid">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            isSelected={product.id === selectedId}
+            onSelect={handleSelect}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}`,
+    approach: 'Four pieces have to work together correctly, not in isolation: typed interfaces that match exactly what the API\'s select= param returns rather than a guessed shape; useReducer collapsing loading/error/data into one atomic transition instead of three independent useState calls that could disagree with each other; AbortController.abort() in the effect\'s cleanup function — which is what "clean up properly" actually means here — cancelling the in-flight request on unmount or when url changes, and explicitly swallowing the resulting AbortError rather than surfacing it as a UI error; and memo/useCallback/useMemo applied only where a genuine parent re-render (selecting a card) would otherwise waste work re-rendering the other eleven cards or recomputing a derived stat that did not need to change. Sprinkling memoization everywhere without a concrete reason would be the wrong lesson to take from this.',
+    answer: 'See code implementation.',
+  },
 ];
 
 export function ReactCodingModule() {
