@@ -2,15 +2,15 @@ import StaticPrepClient from '../components/StaticPrepClient';
 import content from './content.json';
 
 export const metadata = {
-  title: 'Fullstack Developer Interview Prep',
+  title: 'GenAI Interview Prep',
 };
 
-export default function InterviewPrepPage() {
+export default function GenAIPage() {
   return (
     <StaticPrepClient
       html={(content as { html: string }).html}
-      title="Fullstack Developer Interview Prep"
-      loadingLabel="Loading interview prep…"
+      title="GenAI Interview Prep"
+      loadingLabel="Loading GenAI guide…"
     />
   );
 }
