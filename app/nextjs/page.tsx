@@ -1,21 +1,16 @@
-import InterviewPageClient from '../components/InterviewPageClient';
-import { sections, sectionQuizzes, consoleExamples, sectionDiagrams } from './data';
+import StaticPrepClient from '../components/StaticPrepClient';
+import content from './content.json';
 
-export default function NextJsInterviewPage() {
+export const metadata = {
+  title: 'Next.js Interview Mastery',
+};
+
+export default function Page() {
   return (
-    <InterviewPageClient
-      pageId="nextjs"
+    <StaticPrepClient
+      html={(content as { html: string }).html}
       title="Next.js Interview Mastery"
-      subtitle="App Router, Server Components, rendering strategies, caching, Server Actions, middleware & deployment."
-      accentFrom="from-slate-600"
-      accentTo="to-slate-900"
-      accentHoverBg="bg-slate-100"
-      accentHoverText="text-slate-700"
-      checkColor="text-slate-500"
-      sections={sections}
-      sectionQuizzes={sectionQuizzes}
-      consoleExamples={consoleExamples}
-      sectionDiagrams={sectionDiagrams}
+      loadingLabel="Loading study guide…"
     />
   );
 }

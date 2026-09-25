@@ -1,21 +1,16 @@
-import InterviewPageClient from '../components/InterviewPageClient';
-import { sections, sectionQuizzes, consoleExamples, sectionDiagrams } from './data';
+import StaticPrepClient from '../components/StaticPrepClient';
+import content from './content.json';
 
-export default function NodeJsInterviewPage() {
+export const metadata = {
+  title: 'Node.js Interview Mastery',
+};
+
+export default function Page() {
   return (
-    <InterviewPageClient
-      pageId="nodejs"
+    <StaticPrepClient
+      html={(content as { html: string }).html}
       title="Node.js Interview Mastery"
-      subtitle="The definitive full-stack engineer's guide — architecture, event loop, async patterns, streams, security, scaling, databases, testing & microservices."
-      accentFrom="from-emerald-500"
-      accentTo="to-green-600"
-      accentHoverBg="bg-emerald-100"
-      accentHoverText="text-emerald-700"
-      checkColor="text-emerald-500"
-      sections={sections}
-      sectionQuizzes={sectionQuizzes}
-      consoleExamples={consoleExamples}
-      sectionDiagrams={sectionDiagrams}
+      loadingLabel="Loading study guide…"
     />
   );
 }

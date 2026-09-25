@@ -1,21 +1,16 @@
-import InterviewPageClient from '../components/InterviewPageClient';
-import { sections, sectionQuizzes, consoleExamples, sectionDiagrams } from './data';
+import StaticPrepClient from '../components/StaticPrepClient';
+import content from './content.json';
 
-export default function TailwindCssInterviewPage() {
+export const metadata = {
+  title: 'CSS & Tailwind Interview Mastery',
+};
+
+export default function Page() {
   return (
-    <InterviewPageClient
-      pageId="tailwind-css"
+    <StaticPrepClient
+      html={(content as { html: string }).html}
       title="CSS & Tailwind Interview Mastery"
-      subtitle="Box model, specificity, Flexbox & Grid, responsive design, and Tailwind's utility-first model, JIT engine, variants & theming."
-      accentFrom="from-sky-500"
-      accentTo="to-cyan-600"
-      accentHoverBg="bg-sky-100"
-      accentHoverText="text-sky-700"
-      checkColor="text-sky-500"
-      sections={sections}
-      sectionQuizzes={sectionQuizzes}
-      consoleExamples={consoleExamples}
-      sectionDiagrams={sectionDiagrams}
+      loadingLabel="Loading study guide…"
     />
   );
 }
